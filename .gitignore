@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+
+cmd/api/api
+*.exe
+*.out
+*.test
+
+.DS_Store
