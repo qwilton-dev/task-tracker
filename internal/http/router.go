@@ -4,20 +4,22 @@ import (
 	"encoding/json"
 	nethttp "net/http"
 
+	"task-tracker/internal/auth"
 	"task-tracker/internal/http/handler"
+	"task-tracker/internal/http/middleware"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
-func NewRouter(authHandler *handler.AuthHandler) nethttp.Handler {
+func NewRouter(authHandler *handler.AuthHandler, jwtService *auth.JWTService) nethttp.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.StripSlashes)
+	r.Use(chimiddleware.RequestID)
+	r.Use(chimiddleware.RealIP)
+	r.Use(chimiddleware.Logger)
+	r.Use(chimiddleware.Recoverer)
+	r.Use(chimiddleware.StripSlashes)
 
 	r.Get("/healthz", func(w nethttp.ResponseWriter, r *nethttp.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -27,7 +29,11 @@ func NewRouter(authHandler *handler.AuthHandler) nethttp.Handler {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/register", authHandler.Register)
+			r.Post("/login", authHandler.Login)
+			r.Post("/refresh", authHandler.Refresh)
+			r.Post("/logout", authHandler.Logout)
 		})
+		r.With(middleware.RequireAuth(jwtService)).Get("/me", authHandler.Me)
 	})
 
 	return r

@@ -38,24 +38,24 @@
 
 ## 2. Технологический стек
 
-| Компонент | Технология | Назначение |
-|-----------|------------|------------|
-| Язык | Go 1.23+ | API-сервер |
-| HTTP-роутер | chi | Маршрутизация, middleware |
-| СУБД | PostgreSQL 16 | Источник правды |
-| Доступ к БД | pgx + sqlc | Типобезопасные запросы |
-| Миграции | goose | Версионирование схемы |
-| Кэш / bus | Redis 7 | Rate limit, pub/sub для SSE, опциональный кэш доски |
-| Аутентификация | JWT (access) + refresh token в БД | Stateless API с возможностью отзыва сессий |
-| Хеширование паролей | bcrypt или argon2id | Хранение `password_hash` |
-| Валидация входа | go-playground/validator | DTO |
-| Логирование | zap или slog | Structured JSON-логи |
-| Метрики | prometheus/client_golang | Endpoint `/metrics` |
-| Трейсинг (опционально) | OpenTelemetry | v1.1 или неделя 3 |
-| Контейнеризация | Docker, Docker Compose | Локальная и demo-среда |
-| CI | GitHub Actions | lint, test, build |
-| Тесты | testify, testcontainers-go | Unit + интеграционные |
-| API-документация | OpenAPI 3.x | `api/openapi.yaml` |
+| Компонент              | Технология                        | Назначение                                          |
+| ---------------------- | --------------------------------- | --------------------------------------------------- |
+| Язык                   | Go 1.23+                          | API-сервер                                          |
+| HTTP-роутер            | chi                               | Маршрутизация, middleware                           |
+| СУБД                   | PostgreSQL 16                     | Источник правды                                     |
+| Доступ к БД            | pgx + sqlc                        | Типобезопасные запросы                              |
+| Миграции               | goose                             | Версионирование схемы                               |
+| Кэш / bus              | Redis 7                           | Rate limit, pub/sub для SSE, опциональный кэш доски |
+| Аутентификация         | JWT (access) + refresh token в БД | Stateless API с возможностью отзыва сессий          |
+| Хеширование паролей    | bcrypt или argon2id               | Хранение `password_hash`                            |
+| Валидация входа        | go-playground/validator           | DTO                                                 |
+| Логирование            | zap или slog                      | Structured JSON-логи                                |
+| Метрики                | prometheus/client_golang          | Endpoint `/metrics`                                 |
+| Трейсинг (опционально) | OpenTelemetry                     | v1.1 или неделя 3                                   |
+| Контейнеризация        | Docker, Docker Compose            | Локальная и demo-среда                              |
+| CI                     | GitHub Actions                    | lint, test, build                                   |
+| Тесты                  | testify, testcontainers-go        | Unit + интеграционные                               |
+| API-документация       | OpenAPI 3.x                       | `api/openapi.yaml`                                  |
 
 ### 2.1. Инфраструктура локально
 
@@ -279,14 +279,14 @@ CREATE INDEX issue_labels_label_id_idx ON issue_labels (label_id);
 
 #### RefreshToken
 
-| Поле | Тип | Ограничения |
-|------|-----|-------------|
-| id | UUID | PK |
-| user_id | UUID | FK |
-| token_hash | string | NOT NULL |
-| expires_at | timestamptz | NOT NULL |
-| revoked_at | timestamptz | nullable |
-| created_at | timestamptz | NOT NULL |
+| Поле       | Тип         | Ограничения |
+| ---------- | ----------- | ----------- |
+| id         | UUID        | PK          |
+| user_id    | UUID        | FK          |
+| token_hash | string      | NOT NULL    |
+| expires_at | timestamptz | NOT NULL    |
+| revoked_at | timestamptz | nullable    |
+| created_at | timestamptz | NOT NULL    |
 
 #### Invite
 
@@ -336,7 +336,7 @@ CREATE INDEX issue_labels_label_id_idx ON issue_labels (label_id);
 
 ## 5. RBAC
 
-### 5.0. Что такое RBAC (простыми словами)
+### 5.0. Что такое RBAC
 
 **RBAC** (Role-Based Access Control) — доступ к действиям определяется **ролью** пользователя, а не отдельным списком «можно/нельзя» на каждый endpoint.
 

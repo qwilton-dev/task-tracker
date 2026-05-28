@@ -4,7 +4,9 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"time"
 
+	"task-tracker/internal/auth"
 	"task-tracker/internal/config"
 	internalhttp "task-tracker/internal/http"
 	"task-tracker/internal/http/handler"
@@ -28,9 +30,11 @@ func main() {
 	defer pool.Close()
 
 	userRepo := postgres.NewUserRepository(pool)
-	authService := service.NewAuthService(userRepo)
+	tokenRepo := postgres.NewTokenRepository(pool)
+	jwtService := auth.NewJWTService(cfg.SecretKey, "task-tracker", "api", 15*time.Minute)
+	authService := service.NewAuthService(userRepo, tokenRepo, jwtService)
 	authHandler := handler.NewAuthHandler(authService)
-	r := internalhttp.NewRouter(authHandler)
+	r := internalhttp.NewRouter(authHandler, jwtService)
 
 	log.Printf("listening on :%s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {

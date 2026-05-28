@@ -3,7 +3,9 @@ package service
 import (
 	"context"
 	"testing"
+	"time"
 
+	"task-tracker/internal/auth"
 	"task-tracker/internal/domain"
 	"task-tracker/internal/repository"
 
@@ -60,7 +62,9 @@ func TestAuthService_Register_HashesPasswordAndNormalizesEmail(t *testing.T) {
 			return nil
 		},
 	}
-	svc := NewAuthService(repo)
+	tokenRepo := &mockTokenRepo{}
+	jwtSvc := auth.NewJWTService("secret", "test", "api", 1*time.Hour)
+	svc := NewAuthService(repo, tokenRepo, jwtSvc)
 
 	user, err := svc.Register(context.Background(), "  A@B.COM  ", "secret", " Alice ")
 	if err != nil {
@@ -92,7 +96,9 @@ func TestAuthService_Register_EmailAlreadyExists(t *testing.T) {
 			return domain.ErrEmailAlreadyExists
 		},
 	}
-	svc := NewAuthService(repo)
+	tokenRepo := &mockTokenRepo{}
+	jwtSvc := auth.NewJWTService("secret", "test", "api", 1*time.Hour)
+	svc := NewAuthService(repo, tokenRepo, jwtSvc)
 
 	_, err := svc.Register(context.Background(), "a@b.com", "secret", "Alice")
 	if err != domain.ErrEmailAlreadyExists {
@@ -100,3 +106,19 @@ func TestAuthService_Register_EmailAlreadyExists(t *testing.T) {
 	}
 }
 
+type mockTokenRepo struct{}
+
+var _ repository.TokenRepository = (*mockTokenRepo)(nil)
+
+func (m *mockTokenRepo) CreateRefreshToken(ctx context.Context, userID, tokenHash string, expiresAt time.Time) error {
+	return nil
+}
+func (m *mockTokenRepo) GetRefreshToken(ctx context.Context, tokenHash string) (*domain.RefreshToken, error) {
+	return nil, nil
+}
+func (m *mockTokenRepo) RevokeRefreshToken(ctx context.Context, tokenHash string) error {
+	return nil
+}
+func (m *mockTokenRepo) DeleteUserRefreshTokens(ctx context.Context, userID string) error {
+	return nil
+}

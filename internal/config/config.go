@@ -3,23 +3,34 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Port        string
-	DatabaseURL string
-	MigrateDir  string
+	Port                  string
+	DatabaseURL           string
+	MigrateDir            string
+	RefreshTokenExpiresIn time.Duration
+	SecretKey             string
 }
 
 func Load() (Config, error) {
 	_ = godotenv.Load()
+	expiresInStr := firstNonEmpty(os.Getenv("REFRESH_TOKEN_EXPIRES_IN"), "3600")
 
+	expiresIn, err := strconv.Atoi(expiresInStr)
+	if err != nil {
+		expiresIn = 3600
+	}
 	cfg := Config{
-		Port:        firstNonEmpty(os.Getenv("APP_PORT"), os.Getenv("PORT"), "8080"),
-		DatabaseURL: os.Getenv("DATABASE_URL"),
-		MigrateDir:  firstNonEmpty(os.Getenv("MIGRATE_DIR"), "db/migrations"),
+		Port:                  firstNonEmpty(os.Getenv("APP_PORT"), os.Getenv("PORT"), "8080"),
+		DatabaseURL:           os.Getenv("DATABASE_URL"),
+		MigrateDir:            firstNonEmpty(os.Getenv("MIGRATE_DIR"), "db/migrations"),
+		RefreshTokenExpiresIn: time.Duration(expiresIn) * time.Second,
+		SecretKey:             firstNonEmpty(os.Getenv("SECRET_KEY"), "secret"),
 	}
 
 	if cfg.DatabaseURL == "" {
