@@ -12,7 +12,7 @@ import (
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
-func NewRouter(authHandler *handler.AuthHandler, jwtService *auth.JWTService) nethttp.Handler {
+func NewRouter(authHandler *handler.AuthHandler, workspaceHandler *handler.WorkspaceHandler, jwtService *auth.JWTService) nethttp.Handler {
 	r := chi.NewRouter()
 
 	r.Use(chimiddleware.RequestID)
@@ -34,6 +34,12 @@ func NewRouter(authHandler *handler.AuthHandler, jwtService *auth.JWTService) ne
 			r.Post("/logout", authHandler.Logout)
 		})
 		r.With(middleware.RequireAuth(jwtService)).Get("/me", authHandler.Me)
+
+		r.Route("/workspaces", func(r chi.Router) {
+			r.Use(middleware.RequireAuth(jwtService))
+			r.Post("/", workspaceHandler.Create)
+			r.Get("/", workspaceHandler.List)
+		})
 	})
 
 	return r

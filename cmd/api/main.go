@@ -34,7 +34,12 @@ func main() {
 	jwtService := auth.NewJWTService(cfg.SecretKey, "task-tracker", "api", 15*time.Minute)
 	authService := service.NewAuthService(userRepo, tokenRepo, jwtService)
 	authHandler := handler.NewAuthHandler(authService)
-	r := internalhttp.NewRouter(authHandler, jwtService)
+
+	workspaceRepo := postgres.NewWorkspaceRepository(pool)
+	workspaceService := service.NewWorkspaceService(workspaceRepo)
+	workspaceHandler := handler.NewWorkspaceHandler(workspaceService)
+
+	r := internalhttp.NewRouter(authHandler, workspaceHandler, jwtService)
 
 	log.Printf("listening on :%s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {
