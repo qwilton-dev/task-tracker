@@ -8,17 +8,17 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type WokspaceRepository struct {
+type WorkspaceRepository struct {
 	db *pgxpool.Pool
 }
 
-var _ repository.WorkspaceRepository = (*WokspaceRepository)(nil)
+var _ repository.WorkspaceRepository = (*WorkspaceRepository)(nil)
 
-func NewWorkspaceRepository(db *pgxpool.Pool) *WokspaceRepository {
-	return &WokspaceRepository{db: db}
+func NewWorkspaceRepository(db *pgxpool.Pool) *WorkspaceRepository {
+	return &WorkspaceRepository{db: db}
 }
 
-func (r *WokspaceRepository) CreateWorkspace(ctx context.Context, workspace *domain.Workspace) error {
+func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspace *domain.Workspace) error {
 	query := `
 		INSERT INTO workspace (name, slug)
 		VALUES ($1, $2)
@@ -29,7 +29,7 @@ func (r *WokspaceRepository) CreateWorkspace(ctx context.Context, workspace *dom
 	return err
 }
 
-func (r *WokspaceRepository) GetWorkspaceByID(ctx context.Context, id string) (*domain.Workspace, error) {
+func (r *WorkspaceRepository) GetWorkspaceByID(ctx context.Context, id string) (*domain.Workspace, error) {
 	query := `
 		SELECT id, name, slug, created_at
 		FROM workspace
@@ -43,7 +43,7 @@ func (r *WokspaceRepository) GetWorkspaceByID(ctx context.Context, id string) (*
 	}
 	return &workspace, nil
 }
-func (r *WokspaceRepository) GetWorkspaceBySlug(ctx context.Context, slug string) (*domain.Workspace, error) {
+func (r *WorkspaceRepository) GetWorkspaceBySlug(ctx context.Context, slug string) (*domain.Workspace, error) {
 	query := `
 		SELECT id, name, slug, created_at
 		FROM workspace
@@ -57,7 +57,7 @@ func (r *WokspaceRepository) GetWorkspaceBySlug(ctx context.Context, slug string
 	}
 	return &workspace, nil
 }
-func (r *WokspaceRepository) UpdateWorkspace(ctx context.Context, workspace *domain.Workspace) error {
+func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, workspace *domain.Workspace) error {
 	query := `
 		UPDATE workspace
 		SET name = $1, slug = $2
@@ -66,7 +66,7 @@ func (r *WokspaceRepository) UpdateWorkspace(ctx context.Context, workspace *dom
 	_, err := r.db.Exec(ctx, query, workspace.Name, workspace.Slug, workspace.ID)
 	return err
 }
-func (r *WokspaceRepository) DeleteWorkspace(ctx context.Context, id string) error {
+func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, id string) error {
 	query := `
 		DELETE FROM workspace
 		WHERE id = $1
@@ -75,7 +75,7 @@ func (r *WokspaceRepository) DeleteWorkspace(ctx context.Context, id string) err
 	return err
 }
 
-func (r *WokspaceRepository) ListWorkspaces(ctx context.Context, userID string) ([]*domain.Workspace, error) {
+func (r *WorkspaceRepository) ListWorkspaces(ctx context.Context, userID string) ([]*domain.Workspace, error) {
 	query := `
 		SELECT w.id, w.name, w.slug, w.created_at
 		FROM workspace w
@@ -99,7 +99,7 @@ func (r *WokspaceRepository) ListWorkspaces(ctx context.Context, userID string) 
 	return workspaces, nil
 }
 
-func (r *WokspaceRepository) AddMember(ctx context.Context, workspaceID, userID, role string) error {
+func (r *WorkspaceRepository) AddMember(ctx context.Context, workspaceID, userID, role string) error {
 	query := `
 		INSERT INTO workspace_member (workspace_id, user_id, role)
 		VALUES ($1, $2, $3)

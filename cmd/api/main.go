@@ -29,17 +29,28 @@ func main() {
 	}
 	defer pool.Close()
 
+	// Repos
 	userRepo := postgres.NewUserRepository(pool)
 	tokenRepo := postgres.NewTokenRepository(pool)
+	workspaceRepo := postgres.NewWorkspaceRepository(pool)
+	workspaceMemberRepo := postgres.NewWorkspaceMemberRepository(pool)
+	projectRepo := postgres.NewProjectRepository(pool)
+
+	// Services
 	jwtService := auth.NewJWTService(cfg.SecretKey, "task-tracker", "api", 15*time.Minute)
 	authService := service.NewAuthService(userRepo, tokenRepo, jwtService)
-	authHandler := handler.NewAuthHandler(authService)
-
-	workspaceRepo := postgres.NewWorkspaceRepository(pool)
 	workspaceService := service.NewWorkspaceService(workspaceRepo)
-	workspaceHandler := handler.NewWorkspaceHandler(workspaceService)
+	workspaceMemberService := service.NewWorkspaceMemberService(workspaceMemberRepo)
+	projectService := service.NewProjectService(projectRepo, workspaceRepo)
 
-	r := internalhttp.NewRouter(authHandler, workspaceHandler, jwtService)
+	// Handlers
+	authHandler := handler.NewAuthHandler(authService)
+	workspaceHandler := handler.NewWorkspaceHandler(workspaceService)
+	workspaceMemberHandler := handler.NewWorkspaceMemberHandler(workspaceMemberService)
+
+	projectHandler := handler.NewProjectHandler(projectService)
+
+	r := internalhttp.NewRouter(authHandler, workspaceHandler, jwtService, workspaceMemberHandler, projectHandler, workspaceMemberRepo)
 
 	log.Printf("listening on :%s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {
