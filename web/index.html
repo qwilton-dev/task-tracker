@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Task Tracker</h1>
+            <div id="user-info" class="hidden">
+                <span id="user-name"></span>
+                <button class="secondary" onclick="logout()">Logout</button>
+            </div>
+        </header>
+
+        <div id="auth-forms">
+            <div id="login-form">
+                <h2>Login</h2>
+                <input type="email" id="login-email" placeholder="Email">
+                <input type="password" id="login-password" placeholder="Password" onkeydown="if(event.key==='Enter')login()">
+                <button onclick="login()">Login</button>
+                <p>No account? <a href="#" onclick="showRegister()">Register</a></p>
+            </div>
+            <div id="register-form" class="hidden">
+                <h2>Register</h2>
+                <input type="text" id="reg-name" placeholder="Name">
+                <input type="email" id="reg-email" placeholder="Email">
+                <input type="password" id="reg-password" placeholder="Password (min 8 chars)">
+                <button onclick="register()">Register</button>
+                <p>Have account? <a href="#" onclick="showLogin()">Login</a></p>
+            </div>
+        </div>
+
+        <div id="main-content" class="hidden">
+            <div id="project-select">
+                <select id="workspace-select" onchange="loadProjects()">
+                    <option value="">Select workspace</option>
+                </select>
+                <button class="secondary" onclick="showCreateWorkspace()">+ Workspace</button>
+                <select id="project-select-list" onchange="loadIssues()">
+                    <option value="">Select project</option>
+                </select>
+                <button class="secondary" onclick="showCreateProject()">+ Project</button>
+                <button onclick="showCreateIssue()">+ Issue</button>
+            </div>
+
+            <div id="board" class="hidden">
+                <div class="column" data-status="backlog">
+                    <h3>Backlog</h3>
+                    <div class="issues"></div>
+                </div>
+                <div class="column" data-status="todo">
+                    <h3>Todo</h3>
+                    <div class="issues"></div>
+                </div>
+                <div class="column" data-status="in_progress">
+                    <h3>In Progress</h3>
+                    <div class="issues"></div>
+                </div>
+                <div class="column" data-status="review">
+                    <h3>Review</h3>
+                    <div class="issues"></div>
+                </div>
+                <div class="column" data-status="done">
+                    <h3>Done</h3>
+                    <div class="issues"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal()">&times;</span>
+                <div id="modal-body"></div>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
