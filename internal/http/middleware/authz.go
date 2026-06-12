@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func RequireRole(repo repository.WorkspaceMemberRepository, role authz.Role) func(http.Handler) http.Handler {
+func RequireRole(repo repository.WorkspaceMemberRepository, minRole authz.Role) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			userID, ok := r.Context().Value("user_id").(string)
@@ -25,7 +25,7 @@ func RequireRole(repo repository.WorkspaceMemberRepository, role authz.Role) fun
 				return
 			}
 
-			if authz.Role(userRole) != role && authz.Role(userRole) != authz.RoleAdmin {
+			if !authz.Role(userRole).AtLeast(minRole) {
 				http.Error(w, "Forbidden", http.StatusForbidden)
 				return
 			}

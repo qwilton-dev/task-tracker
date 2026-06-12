@@ -82,7 +82,7 @@ func TestAuthHandler_Register_201(t *testing.T) {
 		},
 	}
 	jwtSvc := auth.NewJWTService("secret", "test", "api", 1*time.Hour)
-	svc := service.NewAuthService(repo, repo, jwtSvc)
+	svc := service.NewAuthService(repo, repo, jwtSvc, 7*24*time.Hour)
 	h := NewAuthHandler(svc)
 
 	body := bytes.NewBufferString(`{"email":"a@b.com","password":"secret","name":"Alice"}`)
@@ -117,7 +117,7 @@ func TestAuthHandler_Register_409(t *testing.T) {
 		},
 	}
 	jwtSvc := auth.NewJWTService("secret", "test", "api", 1*time.Hour)
-	svc := service.NewAuthService(repo, repo, jwtSvc)
+	svc := service.NewAuthService(repo, repo, jwtSvc, 7*24*time.Hour)
 	h := NewAuthHandler(svc)
 
 	body := bytes.NewBufferString(`{"email":"a@b.com","password":"secret","name":"Alice"}`)
@@ -134,7 +134,7 @@ func TestAuthHandler_Register_409(t *testing.T) {
 func TestAuthHandler_Register_400_Validation(t *testing.T) {
 	repo := &handlerRepo{}
 	jwtSvc := auth.NewJWTService("secret", "test", "api", 1*time.Hour)
-	svc := service.NewAuthService(repo, repo, jwtSvc)
+	svc := service.NewAuthService(repo, repo, jwtSvc, 7*24*time.Hour)
 	h := NewAuthHandler(svc)
 
 	body := bytes.NewBufferString(`{"email":"","password":"secret","name":"Alice"}`)
@@ -170,7 +170,7 @@ func TestAuthHandler_Refresh_200(t *testing.T) {
 		},
 	}
 	jwtSvc := auth.NewJWTService("secret", "test", "api", 1*time.Hour)
-	svc := service.NewAuthService(repo, repo, jwtSvc)
+	svc := service.NewAuthService(repo, repo, jwtSvc, 7*24*time.Hour)
 	h := NewAuthHandler(svc)
 
 	body := bytes.NewBufferString(`{"refresh_token":"` + rawRefreshToken + `"}`)
@@ -202,7 +202,7 @@ func TestAuthHandler_Logout_200(t *testing.T) {
 		},
 	}
 	jwtSvc := auth.NewJWTService("secret", "test", "api", 1*time.Hour)
-	svc := service.NewAuthService(repo, repo, jwtSvc)
+	svc := service.NewAuthService(repo, repo, jwtSvc, 7*24*time.Hour)
 	h := NewAuthHandler(svc)
 
 	body := bytes.NewBufferString(`{"refresh_token":"` + rawRefreshToken + `"}`)

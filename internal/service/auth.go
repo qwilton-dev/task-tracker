@@ -36,7 +36,7 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (string
 	}
 
 	refreshTokenHash := hashToken(refreshToken)
-	if err := s.tokenRepo.CreateRefreshToken(ctx, user.ID, refreshTokenHash, time.Now().Add(7*24*time.Hour)); err != nil {
+	if err := s.tokenRepo.CreateRefreshToken(ctx, user.ID, refreshTokenHash, time.Now().Add(s.refreshTokenTTL)); err != nil {
 		return "", "", err
 	}
 
@@ -73,7 +73,7 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (string,
 	}
 
 	newRefreshTokenHash := hashToken(newRefreshToken)
-	if err := s.tokenRepo.CreateRefreshToken(ctx, user.ID, newRefreshTokenHash, time.Now().Add(7*24*time.Hour)); err != nil {
+	if err := s.tokenRepo.CreateRefreshToken(ctx, user.ID, newRefreshTokenHash, time.Now().Add(s.refreshTokenTTL)); err != nil {
 		return "", "", err
 	}
 
@@ -98,13 +98,14 @@ func (s *AuthService) Logout(ctx context.Context, refreshToken string) error {
 }
 
 type AuthService struct {
-	userRepo  repository.UserRepository
-	tokenRepo repository.TokenRepository
-	jwt       *auth.JWTService
+	userRepo         repository.UserRepository
+	tokenRepo        repository.TokenRepository
+	jwt              *auth.JWTService
+	refreshTokenTTL  time.Duration
 }
 
-func NewAuthService(userRepo repository.UserRepository, tokenRepo repository.TokenRepository, jwt *auth.JWTService) *AuthService {
-	return &AuthService{userRepo: userRepo, tokenRepo: tokenRepo, jwt: jwt}
+func NewAuthService(userRepo repository.UserRepository, tokenRepo repository.TokenRepository, jwt *auth.JWTService, refreshTokenTTL time.Duration) *AuthService {
+	return &AuthService{userRepo: userRepo, tokenRepo: tokenRepo, jwt: jwt, refreshTokenTTL: refreshTokenTTL}
 }
 
 func (s *AuthService) Register(ctx context.Context, email, password, name string) (*domain.User, error) {

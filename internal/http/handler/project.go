@@ -20,13 +20,13 @@ func (h *ProjectHandler) Create(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "workspaceSlug")
 	var req struct {
 		Name string `json:"name"`
-		Slug string `json:"slug"`
+		Key  string `json:"key"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	p, err := h.svc.CreateProject(r.Context(), slug, req.Name, req.Slug)
+	p, err := h.svc.CreateProject(r.Context(), slug, req.Name, req.Key)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

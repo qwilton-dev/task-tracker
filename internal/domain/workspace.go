@@ -7,10 +7,10 @@ import (
 )
 
 type Workspace struct {
-	ID        string
-	Name      string
-	Slug      string
-	CreatedAt time.Time
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Slug      string    `json:"slug"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func NewWorkspace(name, slug string) (*Workspace, error) {

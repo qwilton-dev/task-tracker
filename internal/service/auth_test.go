@@ -64,7 +64,7 @@ func TestAuthService_Register_HashesPasswordAndNormalizesEmail(t *testing.T) {
 	}
 	tokenRepo := &mockTokenRepo{}
 	jwtSvc := auth.NewJWTService("secret", "test", "api", 1*time.Hour)
-	svc := NewAuthService(repo, tokenRepo, jwtSvc)
+	svc := NewAuthService(repo, tokenRepo, jwtSvc, 7*24*time.Hour)
 
 	user, err := svc.Register(context.Background(), "  A@B.COM  ", "secret", " Alice ")
 	if err != nil {
@@ -98,7 +98,7 @@ func TestAuthService_Register_EmailAlreadyExists(t *testing.T) {
 	}
 	tokenRepo := &mockTokenRepo{}
 	jwtSvc := auth.NewJWTService("secret", "test", "api", 1*time.Hour)
-	svc := NewAuthService(repo, tokenRepo, jwtSvc)
+	svc := NewAuthService(repo, tokenRepo, jwtSvc, 7*24*time.Hour)
 
 	_, err := svc.Register(context.Background(), "a@b.com", "secret", "Alice")
 	if err != domain.ErrEmailAlreadyExists {

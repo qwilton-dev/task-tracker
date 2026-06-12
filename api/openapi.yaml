@@ -104,10 +104,10 @@ paths:
           application/json:
             schema:
               type: object
-              required: [name, slug]
+              required: [name, key]
               properties:
                 name: {type: string}
-                slug: {type: string}
+                key: {type: string, pattern: '^[A-Z]{2,5}$'}
       responses:
         '201': {description: Created}
         '403': {description: Forbidden}

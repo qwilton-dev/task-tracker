@@ -24,7 +24,7 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, userID, name, sl
 		return nil, err
 	}
 	
-	err = s.repo.AddMember(ctx, ws.ID, userID, "admin")
+	err = s.repo.AddMember(ctx, ws.ID, userID, "owner")
 	if err != nil {
 		return nil, err
 	}

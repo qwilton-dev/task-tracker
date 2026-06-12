@@ -38,7 +38,7 @@ func main() {
 
 	// Services
 	jwtService := auth.NewJWTService(cfg.SecretKey, "task-tracker", "api", 15*time.Minute)
-	authService := service.NewAuthService(userRepo, tokenRepo, jwtService)
+	authService := service.NewAuthService(userRepo, tokenRepo, jwtService, cfg.RefreshTokenExpiresIn)
 	workspaceService := service.NewWorkspaceService(workspaceRepo)
 	workspaceMemberService := service.NewWorkspaceMemberService(workspaceMemberRepo)
 	projectService := service.NewProjectService(projectRepo, workspaceRepo)

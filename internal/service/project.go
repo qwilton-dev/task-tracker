@@ -15,13 +15,13 @@ func NewProjectService(projectRepo repository.ProjectRepository, workspaceRepo r
 	return &ProjectService{projectRepo: projectRepo, workspaceRepo: workspaceRepo}
 }
 
-func (s *ProjectService) CreateProject(ctx context.Context, workspaceSlug, name, slug string) (*domain.Project, error) {
+func (s *ProjectService) CreateProject(ctx context.Context, workspaceSlug, name, key string) (*domain.Project, error) {
 	ws, err := s.workspaceRepo.GetWorkspaceBySlug(ctx, workspaceSlug)
 	if err != nil {
 		return nil, err
 	}
 
-	p, err := domain.NewProject(ws.ID, name, slug)
+	p, err := domain.NewProject(ws.ID, name, key)
 	if err != nil {
 		return nil, err
 	}
