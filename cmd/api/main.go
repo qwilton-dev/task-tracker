@@ -35,6 +35,8 @@ func main() {
 	workspaceRepo := postgres.NewWorkspaceRepository(pool)
 	workspaceMemberRepo := postgres.NewWorkspaceMemberRepository(pool)
 	projectRepo := postgres.NewProjectRepository(pool)
+	issueRepo := postgres.NewIssueRepository(pool)
+	commentRepo := postgres.NewCommentRepository(pool)
 
 	// Services
 	jwtService := auth.NewJWTService(cfg.SecretKey, "task-tracker", "api", 15*time.Minute)
@@ -42,15 +44,18 @@ func main() {
 	workspaceService := service.NewWorkspaceService(workspaceRepo)
 	workspaceMemberService := service.NewWorkspaceMemberService(workspaceMemberRepo)
 	projectService := service.NewProjectService(projectRepo, workspaceRepo)
+	issueService := service.NewIssueService(issueRepo, projectRepo)
+	commentService := service.NewCommentService(commentRepo)
 
 	// Handlers
 	authHandler := handler.NewAuthHandler(authService)
 	workspaceHandler := handler.NewWorkspaceHandler(workspaceService)
 	workspaceMemberHandler := handler.NewWorkspaceMemberHandler(workspaceMemberService)
-
 	projectHandler := handler.NewProjectHandler(projectService)
+	issueHandler := handler.NewIssueHandler(issueService)
+	commentHandler := handler.NewCommentHandler(commentService)
 
-	r := internalhttp.NewRouter(authHandler, workspaceHandler, jwtService, workspaceMemberHandler, projectHandler, workspaceMemberRepo)
+	r := internalhttp.NewRouter(authHandler, workspaceHandler, jwtService, workspaceMemberHandler, projectHandler, issueHandler, commentHandler, workspaceMemberRepo, cfg.CORSOrigins)
 
 	log.Printf("listening on :%s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {

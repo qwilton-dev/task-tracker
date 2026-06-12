@@ -11,4 +11,6 @@ type WorkspaceMemberRepository interface {
 	DeleteWorkspaceMember(ctx context.Context, workspaceMember *domain.WorkspaceMember) error
 	UpdateWorkspaceMemberRole(ctx context.Context, workspaceMember *domain.WorkspaceMember) error
 	GetRole(ctx context.Context, workspaceSlug, userID string) (string, error)
+	GetRoleByProjectID(ctx context.Context, projectID, userID string) (string, error)
+	GetRoleByIssueID(ctx context.Context, issueID, userID string) (string, error)
 }

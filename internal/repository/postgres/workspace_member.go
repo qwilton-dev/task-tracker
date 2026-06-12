@@ -80,3 +80,28 @@ func (r *WorkspaceMemberRepository) GetRole(ctx context.Context, workspaceSlug, 
 	err := r.db.QueryRow(ctx, query, workspaceSlug, userID).Scan(&role)
 	return role, err
 }
+
+func (r *WorkspaceMemberRepository) GetRoleByProjectID(ctx context.Context, projectID, userID string) (string, error) {
+	query := `
+		SELECT wm.role
+		FROM workspace_member wm
+		JOIN project p ON wm.workspace_id = p.workspace_id
+		WHERE p.id = $1 AND wm.user_id = $2
+	`
+	var role string
+	err := r.db.QueryRow(ctx, query, projectID, userID).Scan(&role)
+	return role, err
+}
+
+func (r *WorkspaceMemberRepository) GetRoleByIssueID(ctx context.Context, issueID, userID string) (string, error) {
+	query := `
+		SELECT wm.role
+		FROM workspace_member wm
+		JOIN project p ON wm.workspace_id = p.workspace_id
+		JOIN issues i ON i.project_id = p.id
+		WHERE i.id = $1 AND wm.user_id = $2
+	`
+	var role string
+	err := r.db.QueryRow(ctx, query, issueID, userID).Scan(&role)
+	return role, err
+}

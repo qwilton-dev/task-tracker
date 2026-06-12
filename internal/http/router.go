@@ -19,9 +19,13 @@ func NewRouter(authHandler *handler.AuthHandler,
 	jwtService *auth.JWTService,
 	workspaceMemberHandler *handler.WorkspaceMemberHandler,
 	projectHandler *handler.ProjectHandler,
-	workspaceMemberRepo repository.WorkspaceMemberRepository) nethttp.Handler {
+	issueHandler *handler.IssueHandler,
+	commentHandler *handler.CommentHandler,
+	workspaceMemberRepo repository.WorkspaceMemberRepository,
+	corsOrigins string) nethttp.Handler {
 	r := chi.NewRouter()
 
+	r.Use(middleware.CORS(corsOrigins))
 	r.Use(chimiddleware.RequestID)
 	r.Use(chimiddleware.RealIP)
 	r.Use(chimiddleware.Logger)
@@ -32,6 +36,8 @@ func NewRouter(authHandler *handler.AuthHandler,
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
+
+	r.Handle("/*", nethttp.FileServer(nethttp.Dir("web")))
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {
@@ -49,17 +55,37 @@ func NewRouter(authHandler *handler.AuthHandler,
 
 			r.Route("/{workspaceSlug}", func(r chi.Router) {
 				r.Route("/projects", func(r chi.Router) {
-					r.With(middleware.RequireRole(workspaceMemberRepo, authz.RoleMember)).Post("/", projectHandler.Create)
+					r.With(middleware.RequireRoleBySlug(workspaceMemberRepo, authz.RoleMember)).Post("/", projectHandler.Create)
 					r.Get("/", projectHandler.List)
 				})
 			})
 		})
+
 		r.Route("/workspace-members", func(r chi.Router) {
 			r.Use(middleware.RequireAuth(jwtService))
 			r.Post("/", workspaceMemberHandler.AddMember)
 			r.Get("/", workspaceMemberHandler.ListMembers)
 			r.Delete("/", workspaceMemberHandler.DeleteMember)
 			r.Patch("/", workspaceMemberHandler.UpdateMemberRole)
+		})
+
+		r.Route("/projects/{projectID}/issues", func(r chi.Router) {
+			r.Use(middleware.RequireAuth(jwtService))
+			r.Get("/", issueHandler.List)
+			r.With(middleware.RequireRoleByProjectID(workspaceMemberRepo, authz.RoleMember)).Post("/", issueHandler.Create)
+		})
+
+		r.Route("/issues/{issueID}", func(r chi.Router) {
+			r.Use(middleware.RequireAuth(jwtService))
+			r.Get("/", issueHandler.Get)
+			r.With(middleware.RequireRoleByIssueID(workspaceMemberRepo, authz.RoleMember)).Patch("/", issueHandler.Update)
+			r.With(middleware.RequireRoleByIssueID(workspaceMemberRepo, authz.RoleMember)).Delete("/", issueHandler.Delete)
+			r.With(middleware.RequireRoleByIssueID(workspaceMemberRepo, authz.RoleMember)).Patch("/move", issueHandler.Move)
+
+			r.Route("/comments", func(r chi.Router) {
+				r.Get("/", commentHandler.List)
+				r.With(middleware.RequireRoleByIssueID(workspaceMemberRepo, authz.RoleMember)).Post("/", commentHandler.Create)
+			})
 		})
 	})
 
