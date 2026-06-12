@@ -16,6 +16,7 @@ WORKDIR /app
 RUN adduser -D -g '' appuser
 
 COPY --from=builder /bin/task-tracker /app/task-tracker
+COPY --from=builder /app/web /app/web
 
 EXPOSE 8080
 

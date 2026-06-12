@@ -20,7 +20,7 @@ func (h *ProjectHandler) Create(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "workspaceSlug")
 	var req struct {
 		Name string `json:"name"`
-		Key  string `json:"key"`
+		Key  string `json:"key,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

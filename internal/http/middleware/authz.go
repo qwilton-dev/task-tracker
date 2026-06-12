@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"task-tracker/internal/authz"
 	"task-tracker/internal/repository"
@@ -8,7 +9,9 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func RequireRole(repo repository.WorkspaceMemberRepository, minRole authz.Role) func(http.Handler) http.Handler {
+type RoleResolver func(ctx context.Context, r *http.Request, userID string) (string, error)
+
+func RequireRole(repo repository.WorkspaceMemberRepository, minRole authz.Role, resolve RoleResolver) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			userID, ok := r.Context().Value("user_id").(string)
@@ -17,9 +20,7 @@ func RequireRole(repo repository.WorkspaceMemberRepository, minRole authz.Role) 
 				return
 			}
 
-			slug := chi.URLParam(r, "workspaceSlug")
-
-			userRole, err := repo.GetRole(r.Context(), slug, userID)
+			userRole, err := resolve(r.Context(), r, userID)
 			if err != nil {
 				http.Error(w, "Forbidden", http.StatusForbidden)
 				return
@@ -33,4 +34,25 @@ func RequireRole(repo repository.WorkspaceMemberRepository, minRole authz.Role) 
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func RequireRoleBySlug(repo repository.WorkspaceMemberRepository, minRole authz.Role) func(http.Handler) http.Handler {
+	return RequireRole(repo, minRole, func(ctx context.Context, r *http.Request, userID string) (string, error) {
+		slug := chi.URLParam(r, "workspaceSlug")
+		return repo.GetRole(ctx, slug, userID)
+	})
+}
+
+func RequireRoleByProjectID(repo repository.WorkspaceMemberRepository, minRole authz.Role) func(http.Handler) http.Handler {
+	return RequireRole(repo, minRole, func(ctx context.Context, r *http.Request, userID string) (string, error) {
+		projectID := chi.URLParam(r, "projectID")
+		return repo.GetRoleByProjectID(ctx, projectID, userID)
+	})
+}
+
+func RequireRoleByIssueID(repo repository.WorkspaceMemberRepository, minRole authz.Role) func(http.Handler) http.Handler {
+	return RequireRole(repo, minRole, func(ctx context.Context, r *http.Request, userID string) (string, error) {
+		issueID := chi.URLParam(r, "issueID")
+		return repo.GetRoleByIssueID(ctx, issueID, userID)
+	})
 }

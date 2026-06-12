@@ -56,7 +56,19 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"user_id": userID})
+	user, err := h.authService.GetUserByID(r.Context(), userID)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "user not found")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, userResponse{
+		ID:        user.ID,
+		Email:     user.Email,
+		Name:      user.Name,
+		CreatedAt: user.CreatedAt.UTC().Format(http.TimeFormat),
+		UpdatedAt: user.UpdatedAt.UTC().Format(http.TimeFormat),
+	})
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {

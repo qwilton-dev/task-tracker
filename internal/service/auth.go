@@ -108,6 +108,10 @@ func NewAuthService(userRepo repository.UserRepository, tokenRepo repository.Tok
 	return &AuthService{userRepo: userRepo, tokenRepo: tokenRepo, jwt: jwt, refreshTokenTTL: refreshTokenTTL}
 }
 
+func (s *AuthService) GetUserByID(ctx context.Context, id string) (*domain.User, error) {
+	return s.userRepo.GetUserByID(ctx, id)
+}
+
 func (s *AuthService) Register(ctx context.Context, email, password, name string) (*domain.User, error) {
 	email, password, name = domain.NormalizeRegister(email, password, name)
 	if err := domain.ValidateRegister(email, password, name); err != nil {

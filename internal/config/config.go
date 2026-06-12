@@ -15,6 +15,7 @@ type Config struct {
 	MigrateDir            string
 	RefreshTokenExpiresIn time.Duration
 	SecretKey             string
+	CORSOrigins           string
 }
 
 func Load() (Config, error) {
@@ -31,6 +32,7 @@ func Load() (Config, error) {
 		MigrateDir:            firstNonEmpty(os.Getenv("MIGRATE_DIR"), "db/migrations"),
 		RefreshTokenExpiresIn: time.Duration(expiresIn) * time.Second,
 		SecretKey:             firstNonEmpty(os.Getenv("SECRET_KEY"), "secret"),
+		CORSOrigins:           firstNonEmpty(os.Getenv("CORS_ORIGINS"), "http://localhost:8080"),
 	}
 
 	if cfg.DatabaseURL == "" {

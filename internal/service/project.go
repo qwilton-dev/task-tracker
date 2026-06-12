@@ -21,6 +21,13 @@ func (s *ProjectService) CreateProject(ctx context.Context, workspaceSlug, name,
 		return nil, err
 	}
 
+	if key == "" {
+		key = domain.GenerateUniqueKey(name, func(k string) bool {
+			exists, _ := s.projectRepo.ExistsByKey(ctx, ws.ID, k)
+			return exists
+		})
+	}
+
 	p, err := domain.NewProject(ws.ID, name, key)
 	if err != nil {
 		return nil, err

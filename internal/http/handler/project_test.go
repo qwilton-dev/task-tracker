@@ -34,6 +34,9 @@ func (r *projHandlerProjectRepo) GetProjectsByWorkspace(ctx context.Context, wor
 	}
 	return nil, nil
 }
+func (r *projHandlerProjectRepo) ExistsByKey(ctx context.Context, workspaceID, key string) (bool, error) {
+	return false, nil
+}
 
 func TestProjectHandler_Create_201(t *testing.T) {
 	wsRepo := &wsHandlerRepo{

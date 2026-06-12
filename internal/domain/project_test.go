@@ -51,3 +51,24 @@ func TestNewProject_5CharKey(t *testing.T) {
 		t.Fatalf("expected ABCDE, got %s", p.Key)
 	}
 }
+
+func TestGenerateKey(t *testing.T) {
+	tests := []struct {
+		name string
+		want string
+	}{
+		{"Backend", "BACKE"},
+		{"Front End", "FE"},
+		{"My Cool Project", "MCP"},
+		{"API", "API"},
+		{"X", "XX"},
+		{"Auth Service", "AS"},
+		{"User Management Panel", "UMP"},
+	}
+	for _, tt := range tests {
+		got := GenerateKey(tt.name)
+		if got != tt.want {
+			t.Errorf("GenerateKey(%q) = %q, want %q", tt.name, got, tt.want)
+		}
+	}
+}

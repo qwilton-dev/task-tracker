@@ -3,6 +3,8 @@ package domain
 import (
 	"errors"
 	"regexp"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -37,4 +39,48 @@ func NewProject(workspaceID, name, key string) (*Project, error) {
 		Name:        name,
 		Key:         key,
 	}, nil
+}
+
+func GenerateKey(name string) string {
+	words := strings.Fields(strings.ToUpper(name))
+	if len(words) == 1 {
+		w := words[0]
+		if len(w) >= 5 {
+			return w[:5]
+		}
+		if len(w) >= 2 {
+			return w
+		}
+		return w + "X"
+	}
+	key := ""
+	for _, w := range words {
+		if len(key) >= 5 {
+			break
+		}
+		key += string(w[0])
+	}
+	if len(key) < 2 {
+		key += "X"
+	}
+	return key
+}
+
+func GenerateUniqueKey(name string, exists func(key string) bool) string {
+	key := GenerateKey(name)
+	if !exists(key) {
+		return key
+	}
+	for i := 2; i <= 99; i++ {
+		suffix := strconv.Itoa(i)
+		candidate := key
+		if len(candidate)+len(suffix) > 5 {
+			candidate = candidate[:5-len(suffix)]
+		}
+		candidate += suffix
+		if !exists(candidate) {
+			return candidate
+		}
+	}
+	return key
 }

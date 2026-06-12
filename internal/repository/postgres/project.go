@@ -20,7 +20,7 @@ var _ repository.ProjectRepository = (*ProjectRepository)(nil)
 
 func (r *ProjectRepository) CreateProject(ctx context.Context, project *domain.Project) error {
 	query := `
-		INSERT INTO project (workspace_id, name, key)
+		INSERT INTO project (workspace_id, name, "key")
 		VALUES ($1, $2, $3)
 		RETURNING id, created_at
 	`
@@ -29,7 +29,7 @@ func (r *ProjectRepository) CreateProject(ctx context.Context, project *domain.P
 }
 
 func (r *ProjectRepository) GetProjectsByWorkspace(ctx context.Context, workspaceID string) ([]*domain.Project, error) {
-	query := `SELECT id, workspace_id, name, key, created_at FROM project WHERE workspace_id = $1`
+	query := `SELECT id, workspace_id, name, "key", created_at FROM project WHERE workspace_id = $1`
 	rows, err := r.db.Query(ctx, query, workspaceID)
 	if err != nil {
 		return nil, err
@@ -45,4 +45,10 @@ func (r *ProjectRepository) GetProjectsByWorkspace(ctx context.Context, workspac
 		projects = append(projects, &p)
 	}
 	return projects, nil
+}
+
+func (r *ProjectRepository) ExistsByKey(ctx context.Context, workspaceID, key string) (bool, error) {
+	var exists bool
+	err := r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM project WHERE workspace_id = $1 AND "key" = $2)`, workspaceID, key).Scan(&exists)
+	return exists, err
 }

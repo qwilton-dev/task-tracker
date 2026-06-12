@@ -30,6 +30,9 @@ func (m *mockProjectRepo) GetProjectsByWorkspace(ctx context.Context, workspaceI
 	}
 	return nil, nil
 }
+func (m *mockProjectRepo) ExistsByKey(ctx context.Context, workspaceID, key string) (bool, error) {
+	return false, nil
+}
 
 func TestProjectService_CreateProject(t *testing.T) {
 	wsRepo := &mockWorkspaceRepo{
