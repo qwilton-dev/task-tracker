@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"task-tracker/internal/domain"
+	"task-tracker/internal/http/middleware"
 	"task-tracker/internal/service"
 )
 
@@ -50,7 +51,7 @@ func NewAuthHandler(authService *service.AuthService) *AuthHandler {
 }
 
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value("user_id").(string)
+	userID, ok := middleware.UserIDFrom(r.Context())
 	if !ok {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "unauthorized")
 		return

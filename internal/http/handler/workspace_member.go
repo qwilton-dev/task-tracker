@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"task-tracker/internal/http/middleware"
 	"task-tracker/internal/service"
 )
 
@@ -36,7 +37,7 @@ func NewWorkspaceMemberHandler(workspaceMemberService *service.WorkspaceMemberSe
 }
 
 func (h *WorkspaceMemberHandler) AddMember(w http.ResponseWriter, r *http.Request) {
-	_, ok := r.Context().Value("user_id").(string)
+	_, ok := middleware.UserIDFrom(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -56,7 +57,7 @@ func (h *WorkspaceMemberHandler) AddMember(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *WorkspaceMemberHandler) ListMembers(w http.ResponseWriter, r *http.Request) {
-	_, ok := r.Context().Value("user_id").(string)
+	_, ok := middleware.UserIDFrom(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -77,7 +78,7 @@ func (h *WorkspaceMemberHandler) ListMembers(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *WorkspaceMemberHandler) DeleteMember(w http.ResponseWriter, r *http.Request) {
-	_, ok := r.Context().Value("user_id").(string)
+	_, ok := middleware.UserIDFrom(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -97,7 +98,7 @@ func (h *WorkspaceMemberHandler) DeleteMember(w http.ResponseWriter, r *http.Req
 }
 
 func (h *WorkspaceMemberHandler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
-	_, ok := r.Context().Value("user_id").(string)
+	_, ok := middleware.UserIDFrom(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return

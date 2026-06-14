@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"task-tracker/internal/http/middleware"
 	"task-tracker/internal/service"
 )
 
@@ -15,7 +16,7 @@ func NewWorkspaceHandler(svc *service.WorkspaceService) *WorkspaceHandler {
 }
 
 func (h *WorkspaceHandler) Create(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value("user_id").(string)
+	userID, ok := middleware.UserIDFrom(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -39,7 +40,7 @@ func (h *WorkspaceHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *WorkspaceHandler) List(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("user_id").(string)
+	userID, _ := middleware.UserIDFrom(r.Context())
 	wss, err := h.svc.ListWorkspaces(r.Context(), userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

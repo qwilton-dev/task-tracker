@@ -14,7 +14,7 @@ type RoleResolver func(ctx context.Context, r *http.Request, userID string) (str
 func RequireRole(repo repository.WorkspaceMemberRepository, minRole authz.Role, resolve RoleResolver) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			userID, ok := r.Context().Value("user_id").(string)
+			userID, ok := UserIDFrom(r.Context())
 			if !ok {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
@@ -36,10 +36,10 @@ func RequireRole(repo repository.WorkspaceMemberRepository, minRole authz.Role, 
 	}
 }
 
-func RequireRoleBySlug(repo repository.WorkspaceMemberRepository, minRole authz.Role) func(http.Handler) http.Handler {
+func RequireRoleByWorkspaceID(repo repository.WorkspaceMemberRepository, minRole authz.Role) func(http.Handler) http.Handler {
 	return RequireRole(repo, minRole, func(ctx context.Context, r *http.Request, userID string) (string, error) {
-		slug := chi.URLParam(r, "workspaceSlug")
-		return repo.GetRole(ctx, slug, userID)
+		workspaceID := chi.URLParam(r, "workspaceID")
+		return repo.GetRole(ctx, workspaceID, userID)
 	})
 }
 

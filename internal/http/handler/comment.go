@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"task-tracker/internal/http/middleware"
 	"task-tracker/internal/service"
 
 	"github.com/go-chi/chi/v5"
@@ -21,7 +22,7 @@ type createCommentRequest struct {
 }
 
 func (h *CommentHandler) Create(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value("user_id").(string)
+	userID, ok := middleware.UserIDFrom(r.Context())
 	if !ok {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "unauthorized")
 		return

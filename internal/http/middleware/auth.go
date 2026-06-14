@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
 	"strings"
 	"task-tracker/internal/auth"
@@ -28,7 +27,7 @@ func RequireAuth(jwtService *auth.JWTService) func(http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), "user_id", user.ID)
+			ctx := WithUserID(r.Context(), user.ID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"task-tracker/internal/domain"
+	"task-tracker/internal/http/middleware"
 	"task-tracker/internal/repository"
 	"task-tracker/internal/service"
 
@@ -37,7 +38,7 @@ type moveIssueRequest struct {
 }
 
 func (h *IssueHandler) Create(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value("user_id").(string)
+	userID, ok := middleware.UserIDFrom(r.Context())
 	if !ok {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "unauthorized")
 		return

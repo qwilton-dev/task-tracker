@@ -69,15 +69,14 @@ func (r *WorkspaceMemberRepository) UpdateWorkspaceMemberRole(ctx context.Contex
 	return err
 }
 
-func (r *WorkspaceMemberRepository) GetRole(ctx context.Context, workspaceSlug, userID string) (string, error) {
+func (r *WorkspaceMemberRepository) GetRole(ctx context.Context, workspaceID, userID string) (string, error) {
 	query := `
 		SELECT wm.role
 		FROM workspace_member wm
-		JOIN workspace w ON wm.workspace_id = w.id
-		WHERE w.slug = $1 AND wm.user_id = $2
+		WHERE wm.workspace_id = $1 AND wm.user_id = $2
 	`
 	var role string
-	err := r.db.QueryRow(ctx, query, workspaceSlug, userID).Scan(&role)
+	err := r.db.QueryRow(ctx, query, workspaceID, userID).Scan(&role)
 	return role, err
 }
 

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"task-tracker/internal/domain"
+	"task-tracker/internal/http/middleware"
 	"task-tracker/internal/repository"
 	"task-tracker/internal/service"
 
@@ -95,7 +96,7 @@ func TestIssueHandler_Create_201(t *testing.T) {
 	body := bytes.NewBufferString(`{"title":"Fix bug","description":"desc"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/projects/proj-1/issues", body)
 	req.Header.Set("Content-Type", "application/json")
-	ctx := context.WithValue(issueCtx(req, "proj-1", ""), "user_id", "user-1")
+	ctx := middleware.WithUserID(issueCtx(req, "proj-1", ""), "user-1")
 	req = req.WithContext(ctx)
 	rr := httptest.NewRecorder()
 
@@ -122,7 +123,7 @@ func TestIssueHandler_Create_400_EmptyTitle(t *testing.T) {
 	body := bytes.NewBufferString(`{"title":""}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/projects/proj-1/issues", body)
 	req.Header.Set("Content-Type", "application/json")
-	ctx := context.WithValue(issueCtx(req, "proj-1", ""), "user_id", "user-1")
+	ctx := middleware.WithUserID(issueCtx(req, "proj-1", ""), "user-1")
 	req = req.WithContext(ctx)
 	rr := httptest.NewRecorder()
 
@@ -173,7 +174,7 @@ func TestIssueHandler_Move_200(t *testing.T) {
 	body := bytes.NewBufferString(`{"status":"todo","position":100}`)
 	req := httptest.NewRequest(http.MethodPatch, "/api/v1/issues/issue-1/move", body)
 	req.Header.Set("Content-Type", "application/json")
-	ctx := context.WithValue(issueCtx(req, "", "issue-1"), "user_id", "user-1")
+	ctx := middleware.WithUserID(issueCtx(req, "", "issue-1"), "user-1")
 	req = req.WithContext(ctx)
 	rr := httptest.NewRecorder()
 
@@ -193,7 +194,7 @@ func TestIssueHandler_Delete_204(t *testing.T) {
 	h := NewIssueHandler(svc)
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/issues/issue-1", nil)
-	ctx := context.WithValue(issueCtx(req, "", "issue-1"), "user_id", "user-1")
+	ctx := middleware.WithUserID(issueCtx(req, "", "issue-1"), "user-1")
 	req = req.WithContext(ctx)
 	rr := httptest.NewRecorder()
 

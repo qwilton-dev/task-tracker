@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"task-tracker/internal/domain"
+	"task-tracker/internal/http/middleware"
 	"task-tracker/internal/service"
 )
 
@@ -66,7 +67,7 @@ func TestWorkspaceHandler_Create_201(t *testing.T) {
 	body := bytes.NewBufferString(`{"name":"My WS","slug":"my-ws"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces", body)
 	req.Header.Set("Content-Type", "application/json")
-	req = req.WithContext(context.WithValue(req.Context(), "user_id", "user-1"))
+	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
 	rr := httptest.NewRecorder()
 
 	h.Create(rr, req)
@@ -106,7 +107,7 @@ func TestWorkspaceHandler_Create_400_BadJSON(t *testing.T) {
 
 	body := bytes.NewBufferString(`not json`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces", body)
-	req = req.WithContext(context.WithValue(req.Context(), "user_id", "user-1"))
+	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
 	rr := httptest.NewRecorder()
 
 	h.Create(rr, req)
@@ -129,7 +130,7 @@ func TestWorkspaceHandler_List_200(t *testing.T) {
 	h := NewWorkspaceHandler(svc)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces", nil)
-	req = req.WithContext(context.WithValue(req.Context(), "user_id", "user-1"))
+	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
 	rr := httptest.NewRecorder()
 
 	h.List(rr, req)
