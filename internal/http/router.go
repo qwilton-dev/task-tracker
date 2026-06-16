@@ -24,6 +24,7 @@ func NewRouter(authHandler *handler.AuthHandler,
 	labelHandler *handler.LabelHandler,
 	sseHandler *handler.SSEHandler,
 	activityHandler *handler.ActivityHandler,
+	inviteHandler *handler.InviteHandler,
 	workspaceMemberRepo repository.WorkspaceMemberRepository,
 	corsOrigins string) nethttp.Handler {
 	r := chi.NewRouter()
@@ -51,6 +52,8 @@ func NewRouter(authHandler *handler.AuthHandler,
 		})
 		r.With(middleware.RequireAuth(jwtService)).Get("/me", authHandler.Me)
 
+		r.With(middleware.RequireAuth(jwtService)).Post("/invites/{token}/accept", inviteHandler.Accept)
+
 		r.Route("/workspaces", func(r chi.Router) {
 			r.Use(middleware.RequireAuth(jwtService))
 			r.Post("/", workspaceHandler.Create)
@@ -74,6 +77,10 @@ func NewRouter(authHandler *handler.AuthHandler,
 					r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleOwner)).Post("/", workspaceMemberHandler.AddMember)
 					r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleOwner)).Patch("/{memberID}", workspaceMemberHandler.UpdateMemberRole)
 					r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleOwner)).Delete("/{memberID}", workspaceMemberHandler.DeleteMember)
+				})
+				r.Route("/invites", func(r chi.Router) {
+					r.Get("/", inviteHandler.List)
+					r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleMember)).Post("/", inviteHandler.Create)
 				})
 			})
 		})
