@@ -6,6 +6,7 @@ let currentWsId = null;
 let workspaceLabels = [];
 let workspaces = [];
 let eventSource = null;
+const userCache = {};
 
 async function api(method, path, body) {
     const headers = { 'Content-Type': 'application/json' };
@@ -378,11 +379,14 @@ function connectSSE(projectId) {
         removeIssueFromBoard(issue.id);
     });
 
-    eventSource.addEventListener('comment.added', (e) => {
+    eventSource.addEventListener('comment.added', async (e) => {
         const comment = JSON.parse(e.data);
         if (document.getElementById('modal').classList.contains('hidden')) return;
         const issueId = document.getElementById('new-comment')?.closest('[data-issue-id]')?.dataset.issueId;
-        if (issueId === comment.issue_id) addCommentToModal(comment);
+        if (issueId === comment.issue_id) {
+            const authorName = await resolveUserName(comment.author_id);
+            addCommentToModal({ ...comment, author_name: authorName });
+        }
     });
 
     eventSource.onerror = () => {
@@ -442,10 +446,11 @@ function addCommentToModal(comment) {
     if (!list) return;
     const noComments = list.querySelector('p');
     if (noComments) noComments.remove();
+    const authorName = comment.author_name || comment.author_id;
     const div = document.createElement('div');
     div.className = 'comment';
     div.innerHTML = `
-        <div class="author">${comment.author_id}</div>
+        <div class="author">${escapeHtml(authorName)}</div>
         <div class="body">${escapeHtml(comment.body)}</div>
         <div class="time">${new Date(comment.created_at).toLocaleString()}</div>
     `;
@@ -531,15 +536,17 @@ async function showIssueDetail(issue) {
     let commentsHtml = '';
     try {
         const comments = await api('GET', `/issues/${issue.id}/comments`);
-        (Array.isArray(comments) ? comments : []).forEach(c => {
+        const arr = Array.isArray(comments) ? comments : [];
+        for (const c of arr) {
+            const authorName = await resolveUserName(c.author_id);
             commentsHtml += `
                 <div class="comment">
-                    <div class="author">${c.author_id}</div>
+                    <div class="author">${escapeHtml(authorName)}</div>
                     <div class="body">${escapeHtml(c.body)}</div>
                     <div class="time">${new Date(c.created_at).toLocaleString()}</div>
                 </div>
             `;
-        });
+        }
     } catch {}
 
     let issueLabels = [];
@@ -553,21 +560,16 @@ async function showIssueDetail(issue) {
         const activity = await api('GET', `/issues/${issue.id}/activity`);
         const arr = Array.isArray(activity) ? activity : [];
         if (arr.length) {
-            activityHtml = arr.map(e => {
-                const eventType = e.type || e.event_type || 'unknown';
-                let desc = eventType;
-                try {
-                    const p = typeof e.payload === 'string' ? JSON.parse(e.payload) : e.payload;
-                    if (p.title) desc += `: "${p.title}"`;
-                    if (p.name) desc += `: ${p.name}`;
-                    if (p.comment_id) desc += `: comment`;
-                } catch {}
-                return `<div style="display:flex;gap:8px;padding:4px 0;font-size:12px;color:#8b949e;border-bottom:1px solid #21262d">
+            const entries = await Promise.all(arr.map(async e => {
+                const actorName = await resolveUserName(e.actor_id);
+                const desc = formatActivityEvent(e);
+                return `<div style="display:flex;gap:8px;padding:6px 0;font-size:12px;color:#8b949e;border-bottom:1px solid #21262d">
                     <span style="color:#484f58;white-space:nowrap">${new Date(e.created_at).toLocaleString()}</span>
-                    <span>${e.actor_id || 'system'}</span>
+                    <span style="color:#58a6ff">${escapeHtml(actorName)}</span>
                     <span style="color:#c9d1d9">${desc}</span>
                 </div>`;
-            }).join('');
+            }));
+            activityHtml = entries.join('');
         }
     } catch {}
 
@@ -683,6 +685,32 @@ function escapeHtml(s) {
     const d = document.createElement('div');
     d.textContent = s;
     return d.innerHTML;
+}
+
+async function resolveUserName(userId) {
+    if (!userId) return 'system';
+    if (userCache[userId]) return userCache[userId];
+    try {
+        const members = await api('GET', `/workspaces/${currentWsId}/members`);
+        const arr = Array.isArray(members) ? members : [];
+        arr.forEach(m => { userCache[m.user_id] = m.user_id; });
+    } catch {}
+    return userCache[userId] || userId.slice(0, 8);
+}
+
+function formatActivityEvent(e) {
+    const eventType = e.type || e.event_type || 'unknown';
+    const p = typeof e.payload === 'string' ? JSON.parse(e.payload) : (e.payload || {});
+    switch (eventType) {
+        case 'issue.created': return `created issue "${p.title || ''}"`;
+        case 'issue.updated': return `updated issue "${p.title || ''}"`;
+        case 'issue.moved': return `moved issue "${p.title || ''}"`;
+        case 'issue.deleted': return `deleted issue "${p.title || ''}"`;
+        case 'comment.added': return `added a comment`;
+        case 'issue.label_added': return `added label "${p.name || ''}"`;
+        case 'issue.label_removed': return `removed label "${p.name || ''}"`;
+        default: return eventType;
+    }
 }
 
 document.getElementById('modal').addEventListener('click', (e) => {
