@@ -272,7 +272,7 @@ async function loadMembers() {
         list.innerHTML = arr.map(m => `
             <div class="member-item" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #21262d">
                 <div>
-                    <span style="color:#f0f6fc;font-size:14px">${m.user_id}</span>
+                    <span style="color:#f0f6fc;font-size:14px">${escapeHtml(m.user_name || m.user_id)}</span>
                     <span class="label-pill" style="background:#21262d;color:#8b949e;padding:2px 8px;border-radius:12px;font-size:11px;margin-left:8px">${m.role}</span>
                 </div>
                 <div style="display:flex;gap:4px">
@@ -693,7 +693,7 @@ async function resolveUserName(userId) {
     try {
         const members = await api('GET', `/workspaces/${currentWsId}/members`);
         const arr = Array.isArray(members) ? members : [];
-        arr.forEach(m => { userCache[m.user_id] = m.user_id; });
+        arr.forEach(m => { userCache[m.user_id] = m.user_name || m.user_id; });
     } catch {}
     return userCache[userId] || userId.slice(0, 8);
 }

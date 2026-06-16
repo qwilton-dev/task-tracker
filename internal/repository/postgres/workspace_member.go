@@ -28,9 +28,10 @@ func (r *WorkspaceMemberRepository) CreateWorkspaceMember(ctx context.Context, w
 }
 func (r *WorkspaceMemberRepository) GetWorkspaceMembers(ctx context.Context, workspaceId string) ([]*domain.WorkspaceMember, error) {
 	query := `
-		SELECT workspace_id, user_id, role
-		FROM workspace_member
-		WHERE workspace_id = $1
+		SELECT wm.workspace_id, wm.user_id, wm.role, u.name
+		FROM workspace_member wm
+		JOIN users u ON wm.user_id = u.id
+		WHERE wm.workspace_id = $1
 	`
 	rows, err := r.db.Query(ctx, query, workspaceId)
 	if err != nil {
@@ -41,7 +42,7 @@ func (r *WorkspaceMemberRepository) GetWorkspaceMembers(ctx context.Context, wor
 	var members []*domain.WorkspaceMember
 	for rows.Next() {
 		var m domain.WorkspaceMember
-		err := rows.Scan(&m.WorkspaceId, &m.UserId, &m.Role)
+		err := rows.Scan(&m.WorkspaceId, &m.UserId, &m.Role, &m.UserName)
 		if err != nil {
 			return nil, err
 		}
@@ -77,6 +78,18 @@ func (r *WorkspaceMemberRepository) GetRole(ctx context.Context, workspaceID, us
 	`
 	var role string
 	err := r.db.QueryRow(ctx, query, workspaceID, userID).Scan(&role)
+	return role, err
+}
+
+func (r *WorkspaceMemberRepository) GetRoleBySlug(ctx context.Context, slug, userID string) (string, error) {
+	query := `
+		SELECT wm.role
+		FROM workspace_member wm
+		JOIN workspace w ON wm.workspace_id = w.id
+		WHERE w.slug = $1 AND wm.user_id = $2
+	`
+	var role string
+	err := r.db.QueryRow(ctx, query, slug, userID).Scan(&role)
 	return role, err
 }
 

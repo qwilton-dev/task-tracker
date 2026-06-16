@@ -6,9 +6,10 @@ import (
 )
 
 type WorkspaceMember struct {
-	WorkspaceId string
-	UserId      string
-	Role        string
+	WorkspaceId string `json:"workspace_id"`
+	UserId      string `json:"user_id"`
+	Role        string `json:"role"`
+	UserName    string `json:"user_name,omitempty"`
 }
 
 func NewWorkspaceMember(workspaceId, userId, role string) (*WorkspaceMember, error) {
