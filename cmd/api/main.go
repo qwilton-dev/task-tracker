@@ -4,6 +4,9 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"task-tracker/internal/auth"
@@ -37,7 +40,6 @@ func main() {
 	})
 	defer rdb.Close()
 
-	// Repos
 	userRepo := postgres.NewUserRepository(pool)
 	tokenRepo := postgres.NewTokenRepository(pool)
 	workspaceRepo := postgres.NewWorkspaceRepository(pool)
@@ -52,7 +54,6 @@ func main() {
 	publisher := events.NewPublisher(rdb)
 	hub := events.NewHub()
 
-	// Services
 	jwtService := auth.NewJWTService(cfg.SecretKey, "task-tracker", "api", 15*time.Minute)
 	authService := service.NewAuthService(userRepo, tokenRepo, jwtService, cfg.RefreshTokenExpiresIn)
 	workspaceService := service.NewWorkspaceService(workspaceRepo)
@@ -64,7 +65,6 @@ func main() {
 	labelService := service.NewLabelService(labelRepo, workspaceRepo, issueRepo, activityEventService)
 	inviteService := service.NewInviteService(inviteRepo, workspaceMemberRepo)
 
-	// Handlers
 	authHandler := handler.NewAuthHandler(authService)
 	workspaceHandler := handler.NewWorkspaceHandler(workspaceService)
 	workspaceMemberHandler := handler.NewWorkspaceMemberHandler(workspaceMemberService)
@@ -73,16 +73,33 @@ func main() {
 	commentHandler := handler.NewCommentHandler(commentService)
 	labelHandler := handler.NewLabelHandler(labelService)
 	activityHandler := handler.NewActivityHandler(activityEventService)
-
 	inviteHandler := handler.NewInviteHandler(inviteService)
-
 	sseHandler := handler.NewSSEHandler(hub)
 
-	r := internalhttp.NewRouter(authHandler, workspaceHandler, jwtService, workspaceMemberHandler, projectHandler, issueHandler, commentHandler, labelHandler, sseHandler, activityHandler, inviteHandler, workspaceMemberRepo, cfg.CORSOrigins)
+	r := internalhttp.NewRouter(authHandler, workspaceHandler, jwtService, workspaceMemberHandler, projectHandler, issueHandler, commentHandler, labelHandler, sseHandler, activityHandler, inviteHandler, workspaceMemberRepo, cfg.CORSOrigins, pool, rdb)
+
 	go publisher.StartListening(ctx, hub)
 
-	log.Printf("listening on :%s", cfg.Port)
-	if err := http.ListenAndServe(":"+cfg.Port, r); err != nil {
-		log.Fatal(err)
+	srv := &http.Server{
+		Addr:    ":" + cfg.Port,
+		Handler: r,
+	}
+
+	go func() {
+		log.Printf("listening on :%s", cfg.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("shutting down...")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Printf("shutdown error: %v", err)
 	}
 }

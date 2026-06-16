@@ -1,8 +1,10 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	nethttp "net/http"
+	"time"
 
 	"task-tracker/internal/auth"
 	"task-tracker/internal/authz"
@@ -12,6 +14,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 )
 
 func NewRouter(authHandler *handler.AuthHandler,
@@ -26,7 +30,9 @@ func NewRouter(authHandler *handler.AuthHandler,
 	activityHandler *handler.ActivityHandler,
 	inviteHandler *handler.InviteHandler,
 	workspaceMemberRepo repository.WorkspaceMemberRepository,
-	corsOrigins string) nethttp.Handler {
+	corsOrigins string,
+	pool *pgxpool.Pool,
+	rdb *redis.Client) nethttp.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.CORS(corsOrigins))
@@ -37,6 +43,23 @@ func NewRouter(authHandler *handler.AuthHandler,
 	r.Use(chimiddleware.StripSlashes)
 
 	r.Get("/healthz", func(w nethttp.ResponseWriter, r *nethttp.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	})
+
+	r.Get("/readyz", func(w nethttp.ResponseWriter, r *nethttp.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		if err := pool.Ping(ctx); err != nil {
+			w.WriteHeader(nethttp.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]string{"status": "postgres unavailable"})
+			return
+		}
+		if err := rdb.Ping(ctx).Err(); err != nil {
+			w.WriteHeader(nethttp.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]string{"status": "redis unavailable"})
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
