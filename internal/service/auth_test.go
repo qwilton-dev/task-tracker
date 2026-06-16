@@ -66,7 +66,7 @@ func TestAuthService_Register_HashesPasswordAndNormalizesEmail(t *testing.T) {
 	jwtSvc := auth.NewJWTService("secret", "test", "api", 1*time.Hour)
 	svc := NewAuthService(repo, tokenRepo, jwtSvc, 7*24*time.Hour)
 
-	user, err := svc.Register(context.Background(), "  A@B.COM  ", "secret", " Alice ")
+	user, err := svc.Register(context.Background(), "  A@B.COM  ", "secret123", " Alice ")
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestAuthService_Register_HashesPasswordAndNormalizesEmail(t *testing.T) {
 	if got.PasswordHash == "secret" || got.PasswordHash == "" {
 		t.Fatalf("password hash not set properly")
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(got.PasswordHash), []byte("secret")); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(got.PasswordHash), []byte("secret123")); err != nil {
 		t.Fatalf("hash does not match password: %v", err)
 	}
 }
@@ -100,7 +100,7 @@ func TestAuthService_Register_EmailAlreadyExists(t *testing.T) {
 	jwtSvc := auth.NewJWTService("secret", "test", "api", 1*time.Hour)
 	svc := NewAuthService(repo, tokenRepo, jwtSvc, 7*24*time.Hour)
 
-	_, err := svc.Register(context.Background(), "a@b.com", "secret", "Alice")
+	_, err := svc.Register(context.Background(), "a@b.com", "secret123", "Alice")
 	if err != domain.ErrEmailAlreadyExists {
 		t.Fatalf("expected ErrEmailAlreadyExists, got %v", err)
 	}

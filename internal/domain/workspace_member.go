@@ -12,7 +12,6 @@ type WorkspaceMember struct {
 }
 
 func NewWorkspaceMember(workspaceId, userId, role string) (*WorkspaceMember, error) {
-
 	role = normalizeWorkspaceMemberName(role)
 	if workspaceId == "" {
 		return nil, ErrWorkspaceIdRequired
@@ -22,6 +21,9 @@ func NewWorkspaceMember(workspaceId, userId, role string) (*WorkspaceMember, err
 	}
 	if role == "" {
 		return nil, ErrWorkspaceMemberRoleRequired
+	}
+	if !isValidRole(role) {
+		return nil, ErrWorkspaceMemberInvalidRole
 	}
 	return &WorkspaceMember{
 		WorkspaceId: workspaceId,
@@ -34,8 +36,13 @@ func normalizeWorkspaceMemberName(name string) string {
 	return strings.TrimSpace(name)
 }
 
+func isValidRole(role string) bool {
+	return role == "owner" || role == "member" || role == "viewer"
+}
+
 var (
-	ErrWorkspaceMemberIdRequired   = errors.New("member id is required")
-	ErrWorkspaceIdRequired         = errors.New("workspace id is required")
-	ErrWorkspaceMemberRoleRequired = errors.New("member role is required")
+	ErrWorkspaceMemberIdRequired    = errors.New("member id is required")
+	ErrWorkspaceIdRequired          = errors.New("workspace id is required")
+	ErrWorkspaceMemberRoleRequired  = errors.New("member role is required")
+	ErrWorkspaceMemberInvalidRole   = errors.New("role must be 'owner', 'member', or 'viewer'")
 )

@@ -46,6 +46,9 @@ func ValidateRegister(email, password, name string) error {
 	if password == "" {
 		return ErrPasswordRequired
 	}
+	if len(password) < 8 {
+		return ErrPasswordTooShort
+	}
 	if name == "" {
 		return ErrNameRequired
 	}
@@ -60,6 +63,7 @@ var (
 	ErrEmailRequired        = errors.New("email is required")
 	ErrEmailAlreadyExists   = errors.New("email already exists")
 	ErrPasswordRequired     = errors.New("password is required")
+	ErrPasswordTooShort     = errors.New("password must be at least 8 characters")
 	ErrPasswordHashRequired = errors.New("password hash is required")
 	ErrNameRequired         = errors.New("name is required")
 	ErrUserNotFound         = errors.New("user not found")

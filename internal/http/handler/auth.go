@@ -144,6 +144,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, "email_required", err.Error())
 		case errors.Is(err, domain.ErrPasswordRequired):
 			writeError(w, http.StatusBadRequest, "password_required", err.Error())
+		case errors.Is(err, domain.ErrPasswordTooShort):
+			writeError(w, http.StatusBadRequest, "password_too_short", err.Error())
 		case errors.Is(err, domain.ErrNameRequired):
 			writeError(w, http.StatusBadRequest, "name_required", err.Error())
 		case errors.Is(err, domain.ErrEmailAlreadyExists):

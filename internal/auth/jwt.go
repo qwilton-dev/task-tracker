@@ -19,11 +19,13 @@ func NewJWTService(secretKey string, issuer string, audience string, expiresAt t
 }
 
 func (s *JWTService) GenerateToken(user *domain.User) (string, error) {
+	now := time.Now()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub": user.ID,
 		"iss": s.issuer,
 		"aud": s.audience,
-		"exp": time.Now().Add(s.expiresAt).Unix(),
+		"iat": now.Unix(),
+		"exp": now.Add(s.expiresAt).Unix(),
 	})
 	return token.SignedString([]byte(s.secretKey))
 }

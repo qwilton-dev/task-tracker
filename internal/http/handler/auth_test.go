@@ -85,7 +85,7 @@ func TestAuthHandler_Register_201(t *testing.T) {
 	svc := service.NewAuthService(repo, repo, jwtSvc, 7*24*time.Hour)
 	h := NewAuthHandler(svc)
 
-	body := bytes.NewBufferString(`{"email":"a@b.com","password":"secret","name":"Alice"}`)
+	body := bytes.NewBufferString(`{"email":"a@b.com","password":"secret123","name":"Alice"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", body)
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
@@ -120,7 +120,7 @@ func TestAuthHandler_Register_409(t *testing.T) {
 	svc := service.NewAuthService(repo, repo, jwtSvc, 7*24*time.Hour)
 	h := NewAuthHandler(svc)
 
-	body := bytes.NewBufferString(`{"email":"a@b.com","password":"secret","name":"Alice"}`)
+	body := bytes.NewBufferString(`{"email":"a@b.com","password":"secret123","name":"Alice"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", body)
 	rr := httptest.NewRecorder()
 
@@ -137,7 +137,7 @@ func TestAuthHandler_Register_400_Validation(t *testing.T) {
 	svc := service.NewAuthService(repo, repo, jwtSvc, 7*24*time.Hour)
 	h := NewAuthHandler(svc)
 
-	body := bytes.NewBufferString(`{"email":"","password":"secret","name":"Alice"}`)
+	body := bytes.NewBufferString(`{"email":"","password":"secret123","name":"Alice"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", body)
 	rr := httptest.NewRecorder()
 
