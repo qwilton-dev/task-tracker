@@ -37,12 +37,8 @@ func (s *ProjectService) CreateProject(ctx context.Context, workspaceSlug, name,
 	return p, err
 }
 
-func (s *ProjectService) ListProjects(ctx context.Context, workspaceSlug string) ([]*domain.Project, error) {
-	ws, err := s.workspaceRepo.GetWorkspaceBySlug(ctx, workspaceSlug)
-	if err != nil {
-		return nil, err
-	}
-	return s.projectRepo.GetProjectsByWorkspace(ctx, ws.ID)
+func (s *ProjectService) ListProjects(ctx context.Context, workspaceID string) ([]*domain.Project, error) {
+	return s.projectRepo.GetProjectsByWorkspace(ctx, workspaceID)
 }
 
 func (s *ProjectService) GetProject(ctx context.Context, id string) (*domain.Project, error) {
