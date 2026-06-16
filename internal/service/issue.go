@@ -104,6 +104,8 @@ func (s *IssueService) MoveIssue(ctx context.Context, id, status string, positio
 	if err := s.issueRepo.MoveIssue(ctx, id, status, position); err != nil {
 		return err
 	}
+	issue.Status = status
+	issue.Position = position
 	s.activity.CreateActivityEvent(ctx, issue.ID, actorID, "issue.moved", map[string]string{
 		"title": issue.Title,
 	})
