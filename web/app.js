@@ -254,9 +254,13 @@ async function showManageMembers() {
             </select>
             <button onclick="sendInvite()">Send Invite</button>
         </div>
+        <div style="margin-top:16px;border-top:1px solid #30363d;padding-top:12px">
+            <h3 style="font-size:14px;color:#8b949e;margin-bottom:8px">Pending Invites</h3>
+            <div id="invites-list"><p style="color:#8b949e;font-size:14px">Loading...</p></div>
+        </div>
     `;
     modal.classList.remove('hidden');
-    await loadMembers();
+    await Promise.all([loadMembers(), loadInvites()]);
 }
 
 async function loadMembers() {
@@ -329,8 +333,40 @@ async function sendInvite() {
         await api('POST', `/workspaces/${currentWsId}/invites`, { email, role });
         alert('Invite sent!');
         document.getElementById('invite-email').value = '';
+        await loadInvites();
     } catch (e) {
         alert(e.message);
+    }
+}
+
+async function loadInvites() {
+    try {
+        const invites = await api('GET', `/workspaces/${currentWsId}/invites`);
+        const list = document.getElementById('invites-list');
+        if (!list) return;
+        const arr = Array.isArray(invites) ? invites : [];
+        const pending = arr.filter(i => !i.accepted_at);
+        if (!pending.length) {
+            list.innerHTML = '<p style="color:#8b949e;font-size:14px">No pending invites</p>';
+            return;
+        }
+        list.innerHTML = pending.map(i => {
+            const expired = new Date(i.expires_at) < new Date();
+            const status = expired ? '<span style="color:#f85149">expired</span>' : `<span style="color:#3fb950">active</span>`;
+            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #21262d">
+                <div>
+                    <span style="color:#f0f6fc;font-size:14px">${escapeHtml(i.email)}</span>
+                    <span class="label-pill" style="background:#21262d;color:#8b949e;padding:2px 8px;border-radius:12px;font-size:11px;margin-left:8px">${i.role}</span>
+                    ${status}
+                </div>
+                <div style="font-size:11px;color:#484f58;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${i.token}">
+                    token: ${i.token.slice(0, 12)}...
+                </div>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        const list = document.getElementById('invites-list');
+        if (list) list.innerHTML = `<p style="color:#f85149;font-size:14px">${e.message}</p>`;
     }
 }
 
@@ -717,4 +753,27 @@ document.getElementById('modal').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeModal();
 });
 
-if (token) showApp();
+async function acceptInvite(inviteToken) {
+    if (!token) {
+        alert('Please login first, then visit this link again.');
+        showApp();
+        return;
+    }
+    try {
+        await api('POST', `/invites/${inviteToken}/accept`);
+        alert('Invite accepted! You are now a member.');
+        window.location.href = '/';
+    } catch (e) {
+        alert('Failed to accept invite: ' + e.message);
+    }
+}
+
+if (token) {
+    const params = new URLSearchParams(window.location.search);
+    const inviteToken = params.get('invite');
+    if (inviteToken) {
+        acceptInvite(inviteToken);
+    } else {
+        showApp();
+    }
+}

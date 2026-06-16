@@ -10,7 +10,7 @@ type Invite struct {
 	WorkspaceID string     `json:"workspace_id"`
 	Email       string     `json:"email"`
 	Role        string     `json:"role"`
-	Token       string     `json:"-"`
+	Token       string     `json:"token"`
 	ExpiresAt   time.Time  `json:"expires_at"`
 	AcceptedAt  *time.Time `json:"accepted_at,omitempty"`
 	CreatedBy   string     `json:"created_by"`
