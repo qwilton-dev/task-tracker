@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"task-tracker/internal/domain"
+	"task-tracker/internal/repository"
 )
 
 type mockLabelRepo struct {
@@ -17,6 +18,8 @@ type mockLabelRepo struct {
 	detachFn       func(ctx context.Context, issueID, labelID string) error
 	listByIssueFn  func(ctx context.Context, issueID string) ([]*domain.Label, error)
 }
+
+var _ repository.LabelRepository = (*mockLabelRepo)(nil)
 
 func (m *mockLabelRepo) CreateLabel(ctx context.Context, label *domain.Label) error {
 	if m.createFn != nil {
@@ -68,8 +71,33 @@ func (m *mockLabelRepo) ListLabelsByIssue(ctx context.Context, issueID string) (
 	return nil, nil
 }
 
+type mockIssueRepoForLabel struct{}
+
+func (m *mockIssueRepoForLabel) CreateIssue(ctx context.Context, issue *domain.Issue) error { return nil }
+func (m *mockIssueRepoForLabel) CreateIssueTx(ctx context.Context, issue *domain.Issue) error { return nil }
+func (m *mockIssueRepoForLabel) GetIssueByID(ctx context.Context, id string) (*domain.Issue, error) {
+	return nil, domain.ErrIssueNotFound
+}
+func (m *mockIssueRepoForLabel) ListIssuesByProject(ctx context.Context, projectID string, filters repository.IssueFilters) ([]*domain.Issue, error) {
+	return nil, nil
+}
+func (m *mockIssueRepoForLabel) UpdateIssue(ctx context.Context, issue *domain.Issue) error { return nil }
+func (m *mockIssueRepoForLabel) DeleteIssue(ctx context.Context, id string) error          { return nil }
+func (m *mockIssueRepoForLabel) MoveIssue(ctx context.Context, id, status string, position float64) error {
+	return nil
+}
+func (m *mockIssueRepoForLabel) GetMaxNumber(ctx context.Context, projectID string) (int, error) {
+	return 0, nil
+}
+
+var _ repository.IssueRepository = (*mockIssueRepoForLabel)(nil)
+
+func newTestLabelService(repo repository.LabelRepository) *LabelService {
+	return NewLabelService(repo, &mockWorkspaceRepo{}, &mockIssueRepoForLabel{}, NewActivityEventService(&mockActivityEventRepo{}))
+}
+
 func TestLabelService_CreateLabel(t *testing.T) {
-	svc := NewLabelService(&mockLabelRepo{})
+	svc := newTestLabelService(&mockLabelRepo{})
 	label, err := svc.CreateLabel(context.Background(), "ws-1", "Bug", "#ff0000")
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
@@ -83,7 +111,7 @@ func TestLabelService_CreateLabel(t *testing.T) {
 }
 
 func TestLabelService_CreateLabel_EmptyName(t *testing.T) {
-	svc := NewLabelService(&mockLabelRepo{})
+	svc := newTestLabelService(&mockLabelRepo{})
 	_, err := svc.CreateLabel(context.Background(), "ws-1", "", "#ff0000")
 	if err != domain.ErrLabelNameRequired {
 		t.Fatalf("expected ErrLabelNameRequired, got %v", err)
@@ -91,7 +119,7 @@ func TestLabelService_CreateLabel_EmptyName(t *testing.T) {
 }
 
 func TestLabelService_CreateLabel_InvalidColor(t *testing.T) {
-	svc := NewLabelService(&mockLabelRepo{})
+	svc := newTestLabelService(&mockLabelRepo{})
 	_, err := svc.CreateLabel(context.Background(), "ws-1", "Bug", "red")
 	if err != domain.ErrLabelColorInvalid {
 		t.Fatalf("expected ErrLabelColorInvalid, got %v", err)
@@ -107,7 +135,7 @@ func TestLabelService_ListLabels(t *testing.T) {
 			}, nil
 		},
 	}
-	svc := NewLabelService(repo)
+	svc := newTestLabelService(repo)
 	labels, err := svc.ListLabels(context.Background(), "ws-1")
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
@@ -123,7 +151,7 @@ func TestLabelService_UpdateLabel(t *testing.T) {
 			return &domain.Label{ID: id, Name: "Bug", Color: "#ff0000"}, nil
 		},
 	}
-	svc := NewLabelService(repo)
+	svc := newTestLabelService(repo)
 	label, err := svc.UpdateLabel(context.Background(), "label-1", "Critical", "#ff00ff")
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
@@ -137,7 +165,7 @@ func TestLabelService_UpdateLabel(t *testing.T) {
 }
 
 func TestLabelService_UpdateLabel_NotFound(t *testing.T) {
-	svc := NewLabelService(&mockLabelRepo{})
+	svc := newTestLabelService(&mockLabelRepo{})
 	_, err := svc.UpdateLabel(context.Background(), "bad-id", "Bug", "#ff0000")
 	if err != domain.ErrLabelNotFound {
 		t.Fatalf("expected ErrLabelNotFound, got %v", err)
@@ -145,22 +173,22 @@ func TestLabelService_UpdateLabel_NotFound(t *testing.T) {
 }
 
 func TestLabelService_DeleteLabel(t *testing.T) {
-	svc := NewLabelService(&mockLabelRepo{})
+	svc := newTestLabelService(&mockLabelRepo{})
 	if err := svc.DeleteLabel(context.Background(), "label-1"); err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
 }
 
 func TestLabelService_AttachLabel(t *testing.T) {
-	svc := NewLabelService(&mockLabelRepo{})
-	if err := svc.AttachLabel(context.Background(), "issue-1", "label-1"); err != nil {
+	svc := newTestLabelService(&mockLabelRepo{})
+	if err := svc.AttachLabel(context.Background(), "issue-1", "label-1", "user-1"); err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
 }
 
 func TestLabelService_DetachLabel(t *testing.T) {
-	svc := NewLabelService(&mockLabelRepo{})
-	if err := svc.DetachLabel(context.Background(), "issue-1", "label-1"); err != nil {
+	svc := newTestLabelService(&mockLabelRepo{})
+	if err := svc.DetachLabel(context.Background(), "issue-1", "label-1", "user-1"); err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
 }
@@ -171,8 +199,8 @@ func TestLabelService_DetachLabel_NotFound(t *testing.T) {
 			return domain.ErrLabelNotFound
 		},
 	}
-	svc := NewLabelService(repo)
-	err := svc.DetachLabel(context.Background(), "issue-1", "bad-label")
+	svc := newTestLabelService(repo)
+	err := svc.DetachLabel(context.Background(), "issue-1", "bad-label", "user-1")
 	if err != domain.ErrLabelNotFound {
 		t.Fatalf("expected ErrLabelNotFound, got %v", err)
 	}
@@ -186,7 +214,7 @@ func TestLabelService_ListLabelsByIssue(t *testing.T) {
 			}, nil
 		},
 	}
-	svc := NewLabelService(repo)
+	svc := newTestLabelService(repo)
 	labels, err := svc.ListLabelsByIssue(context.Background(), "issue-1")
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)

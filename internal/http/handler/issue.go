@@ -96,13 +96,14 @@ func (h *IssueHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 func (h *IssueHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "issueID")
+	userID, _ := middleware.UserIDFrom(r.Context())
 	var req updateIssueRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "bad_request", "invalid json")
 		return
 	}
 
-	issue, err := h.svc.UpdateIssue(r.Context(), id, req.Title, req.Description, req.Priority, req.AssigneeID)
+	issue, err := h.svc.UpdateIssue(r.Context(), id, req.Title, req.Description, req.Priority, req.AssigneeID, userID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "internal_error", err.Error())
 		return
@@ -112,7 +113,8 @@ func (h *IssueHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 func (h *IssueHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "issueID")
-	if err := h.svc.DeleteIssue(r.Context(), id); err != nil {
+	userID, _ := middleware.UserIDFrom(r.Context())
+	if err := h.svc.DeleteIssue(r.Context(), id, userID); err != nil {
 		writeError(w, http.StatusNotFound, "not_found", "issue not found")
 		return
 	}
@@ -121,6 +123,7 @@ func (h *IssueHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 func (h *IssueHandler) Move(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "issueID")
+	userID, _ := middleware.UserIDFrom(r.Context())
 	var req moveIssueRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "bad_request", "invalid json")
@@ -134,7 +137,7 @@ func (h *IssueHandler) Move(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := h.svc.MoveIssue(r.Context(), id, req.Status, req.Position); err != nil {
+	if err := h.svc.MoveIssue(r.Context(), id, req.Status, req.Position, userID); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_move", err.Error())
 		return
 	}

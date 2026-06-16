@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"task-tracker/internal/domain"
+	"task-tracker/internal/http/middleware"
 	"task-tracker/internal/service"
 
 	"github.com/go-chi/chi/v5"
@@ -64,10 +65,21 @@ func (h *LabelHandler) ListLabels(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, labels)
 }
 
+func (h *LabelHandler) ListLabelsByIssue(w http.ResponseWriter, r *http.Request) {
+	issueID := chi.URLParam(r, "issueID")
+	labels, err := h.svc.ListLabelsByIssue(r.Context(), issueID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal_error", "failed to list labels")
+		return
+	}
+	writeJSON(w, http.StatusOK, labels)
+}
+
 func (h *LabelHandler) AttachLabel(w http.ResponseWriter, r *http.Request) {
 	issueID := chi.URLParam(r, "issueID")
 	labelID := chi.URLParam(r, "labelID")
-	if err := h.svc.AttachLabel(r.Context(), issueID, labelID); err != nil {
+	userID, _ := middleware.UserIDFrom(r.Context())
+	if err := h.svc.AttachLabel(r.Context(), issueID, labelID, userID); err != nil {
 		writeError(w, http.StatusInternalServerError, "internal_error", "failed to attach label")
 		return
 	}
@@ -77,7 +89,8 @@ func (h *LabelHandler) AttachLabel(w http.ResponseWriter, r *http.Request) {
 func (h *LabelHandler) DetachLabel(w http.ResponseWriter, r *http.Request) {
 	issueID := chi.URLParam(r, "issueID")
 	labelID := chi.URLParam(r, "labelID")
-	if err := h.svc.DetachLabel(r.Context(), issueID, labelID); err != nil {
+	userID, _ := middleware.UserIDFrom(r.Context())
+	if err := h.svc.DetachLabel(r.Context(), issueID, labelID, userID); err != nil {
 		if errors.Is(err, domain.ErrLabelNotFound) {
 			writeError(w, http.StatusNotFound, "label_not_found", err.Error())
 			return

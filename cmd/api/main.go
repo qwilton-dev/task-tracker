@@ -60,8 +60,8 @@ func main() {
 	projectService := service.NewProjectService(projectRepo, workspaceRepo)
 	activityEventService := service.NewActivityEventService(activityEventRepo)
 	issueService := service.NewIssueService(activityEventService, issueRepo, projectRepo, publisher)
-	commentService := service.NewCommentService(commentRepo, issueRepo, publisher)
-	labelService := service.NewLabelService(labelRepo, workspaceRepo)
+	commentService := service.NewCommentService(commentRepo, issueRepo, activityEventService, publisher)
+	labelService := service.NewLabelService(labelRepo, workspaceRepo, issueRepo, activityEventService)
 	inviteService := service.NewInviteService(inviteRepo, workspaceMemberRepo)
 
 	// Handlers
