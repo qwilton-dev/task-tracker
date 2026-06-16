@@ -52,3 +52,36 @@ func (r *ProjectRepository) ExistsByKey(ctx context.Context, workspaceID, key st
 	err := r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM project WHERE workspace_id = $1 AND "key" = $2)`, workspaceID, key).Scan(&exists)
 	return exists, err
 }
+
+func (r *ProjectRepository) GetProjectByID(ctx context.Context, id string) (*domain.Project, error) {
+	query := `SELECT id, workspace_id, name, "key", created_at FROM project WHERE id = $1`
+	var p domain.Project
+	err := r.db.QueryRow(ctx, query, id).Scan(&p.ID, &p.WorkspaceID, &p.Name, &p.Key, &p.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+func (r *ProjectRepository) UpdateProject(ctx context.Context, project *domain.Project) error {
+	query := `UPDATE project SET name = $1, "key" = $2 WHERE id = $3`
+	tag, err := r.db.Exec(ctx, query, project.Name, project.Key, project.ID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return domain.ErrProjectNotFound
+	}
+	return nil
+}
+
+func (r *ProjectRepository) DeleteProject(ctx context.Context, id string) error {
+	tag, err := r.db.Exec(ctx, `DELETE FROM project WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return domain.ErrProjectNotFound
+	}
+	return nil
+}

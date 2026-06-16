@@ -16,8 +16,11 @@ import (
 )
 
 type projHandlerProjectRepo struct {
-	createFn func(ctx context.Context, p *domain.Project) error
-	listFn   func(ctx context.Context, workspaceID string) ([]*domain.Project, error)
+	createFn  func(ctx context.Context, p *domain.Project) error
+	listFn    func(ctx context.Context, workspaceID string) ([]*domain.Project, error)
+	getByIDFn func(ctx context.Context, id string) (*domain.Project, error)
+	updateFn  func(ctx context.Context, p *domain.Project) error
+	deleteFn  func(ctx context.Context, id string) error
 }
 
 func (r *projHandlerProjectRepo) CreateProject(ctx context.Context, p *domain.Project) error {
@@ -37,6 +40,24 @@ func (r *projHandlerProjectRepo) GetProjectsByWorkspace(ctx context.Context, wor
 func (r *projHandlerProjectRepo) ExistsByKey(ctx context.Context, workspaceID, key string) (bool, error) {
 	return false, nil
 }
+func (r *projHandlerProjectRepo) GetProjectByID(ctx context.Context, id string) (*domain.Project, error) {
+	if r.getByIDFn != nil {
+		return r.getByIDFn(ctx, id)
+	}
+	return nil, domain.ErrProjectNotFound
+}
+func (r *projHandlerProjectRepo) UpdateProject(ctx context.Context, p *domain.Project) error {
+	if r.updateFn != nil {
+		return r.updateFn(ctx, p)
+	}
+	return nil
+}
+func (r *projHandlerProjectRepo) DeleteProject(ctx context.Context, id string) error {
+	if r.deleteFn != nil {
+		return r.deleteFn(ctx, id)
+	}
+	return nil
+}
 
 func TestProjectHandler_Create_201(t *testing.T) {
 	wsRepo := &wsHandlerRepo{
@@ -49,10 +70,10 @@ func TestProjectHandler_Create_201(t *testing.T) {
 	h := NewProjectHandler(svc)
 
 	body := bytes.NewBufferString(`{"name":"Backend","key":"BE"}`)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/my-ws/projects", body)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/ws-1/projects", body)
 	req.Header.Set("Content-Type", "application/json")
 	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("workspaceSlug", "my-ws")
+	rctx.URLParams.Add("workspaceID", "ws-1")
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 	rr := httptest.NewRecorder()
 
@@ -77,9 +98,9 @@ func TestProjectHandler_Create_400_BadJSON(t *testing.T) {
 	h := NewProjectHandler(svc)
 
 	body := bytes.NewBufferString(`not json`)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/my-ws/projects", body)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces/ws-1/projects", body)
 	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("workspaceSlug", "my-ws")
+	rctx.URLParams.Add("workspaceID", "ws-1")
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 	rr := httptest.NewRecorder()
 
@@ -106,9 +127,9 @@ func TestProjectHandler_List_200(t *testing.T) {
 	svc := service.NewProjectService(projRepo, wsRepo)
 	h := NewProjectHandler(svc)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/my-ws/projects", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/ws-1/projects", nil)
 	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("workspaceSlug", "my-ws")
+	rctx.URLParams.Add("workspaceID", "ws-1")
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 	rr := httptest.NewRecorder()
 

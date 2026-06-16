@@ -22,6 +22,7 @@ var (
 	ErrProjectNameRequired = errors.New("project name is required")
 	ErrProjectKeyRequired  = errors.New("project key is required")
 	ErrProjectKeyInvalid   = errors.New("project key must be 2-5 uppercase letters")
+	ErrProjectNotFound     = errors.New("project not found")
 )
 
 func NewProject(workspaceID, name, key string) (*Project, error) {
@@ -39,6 +40,16 @@ func NewProject(workspaceID, name, key string) (*Project, error) {
 		Name:        name,
 		Key:         key,
 	}, nil
+}
+
+func ValidateProjectKey(key string) error {
+	if key == "" {
+		return ErrProjectKeyRequired
+	}
+	if !projectKeyRegex.MatchString(key) {
+		return ErrProjectKeyInvalid
+	}
+	return nil
 }
 
 func GenerateKey(name string) string {

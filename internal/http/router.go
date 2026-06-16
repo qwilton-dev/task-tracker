@@ -22,6 +22,8 @@ func NewRouter(authHandler *handler.AuthHandler,
 	issueHandler *handler.IssueHandler,
 	commentHandler *handler.CommentHandler,
 	labelHandler *handler.LabelHandler,
+	sseHandler *handler.SSEHandler,
+	activityHandler *handler.ActivityHandler,
 	workspaceMemberRepo repository.WorkspaceMemberRepository,
 	corsOrigins string) nethttp.Handler {
 	r := chi.NewRouter()
@@ -55,29 +57,38 @@ func NewRouter(authHandler *handler.AuthHandler,
 			r.Get("/", workspaceHandler.List)
 
 			r.Route("/{workspaceID}", func(r chi.Router) {
+				r.Get("/", workspaceHandler.Get)
+				r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleOwner)).Patch("/", workspaceHandler.Update)
+				r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleOwner)).Delete("/", workspaceHandler.Delete)
+
 				r.Route("/projects", func(r chi.Router) {
-					r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleMember)).Post("/", projectHandler.Create)
+					r.With(middleware.RequireRoleByWorkspaceSlug(workspaceMemberRepo, authz.RoleMember)).Post("/", projectHandler.Create)
 					r.Get("/", projectHandler.List)
 				})
 				r.Route("/labels", func(r chi.Router) {
 					r.Get("/", labelHandler.ListLabels)
-					r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleMember)).Post("/", labelHandler.CreateLabel)
+					r.With(middleware.RequireRoleByWorkspaceSlug(workspaceMemberRepo, authz.RoleMember)).Post("/", labelHandler.CreateLabel)
+				})
+				r.Route("/members", func(r chi.Router) {
+					r.Get("/", workspaceMemberHandler.ListMembers)
+					r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleOwner)).Post("/", workspaceMemberHandler.AddMember)
+					r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleOwner)).Patch("/{memberID}", workspaceMemberHandler.UpdateMemberRole)
+					r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleOwner)).Delete("/{memberID}", workspaceMemberHandler.DeleteMember)
 				})
 			})
 		})
 
-		r.Route("/workspace-members", func(r chi.Router) {
+		r.Route("/projects/{projectID}", func(r chi.Router) {
 			r.Use(middleware.RequireAuth(jwtService))
-			r.Post("/", workspaceMemberHandler.AddMember)
-			r.Get("/", workspaceMemberHandler.ListMembers)
-			r.Delete("/", workspaceMemberHandler.DeleteMember)
-			r.Patch("/", workspaceMemberHandler.UpdateMemberRole)
-		})
+			r.Get("/", projectHandler.Get)
+			r.With(middleware.RequireRoleByProjectID(workspaceMemberRepo, authz.RoleMember)).Patch("/", projectHandler.Update)
+			r.With(middleware.RequireRoleByProjectID(workspaceMemberRepo, authz.RoleOwner)).Delete("/", projectHandler.Delete)
 
-		r.Route("/projects/{projectID}/issues", func(r chi.Router) {
-			r.Use(middleware.RequireAuth(jwtService))
-			r.Get("/", issueHandler.List)
-			r.With(middleware.RequireRoleByProjectID(workspaceMemberRepo, authz.RoleMember)).Post("/", issueHandler.Create)
+			r.Route("/issues", func(r chi.Router) {
+				r.Get("/", issueHandler.List)
+				r.With(middleware.RequireRoleByProjectID(workspaceMemberRepo, authz.RoleMember)).Post("/", issueHandler.Create)
+			})
+			r.With(middleware.RequireRoleByProjectID(workspaceMemberRepo, authz.RoleViewer)).Get("/events", sseHandler.Stream)
 		})
 
 		r.Route("/issues/{issueID}", func(r chi.Router) {
@@ -92,7 +103,12 @@ func NewRouter(authHandler *handler.AuthHandler,
 				r.With(middleware.RequireRoleByIssueID(workspaceMemberRepo, authz.RoleMember)).Post("/", commentHandler.Create)
 			})
 
+			r.Route("/activity", func(r chi.Router) {
+				r.Get("/", activityHandler.ListByIssue)
+			})
+
 			r.Route("/labels", func(r chi.Router) {
+				r.Get("/", labelHandler.ListLabelsByIssue)
 				r.With(middleware.RequireRoleByIssueID(workspaceMemberRepo, authz.RoleMember)).Post("/{labelID}", labelHandler.AttachLabel)
 				r.With(middleware.RequireRoleByIssueID(workspaceMemberRepo, authz.RoleMember)).Delete("/{labelID}", labelHandler.DetachLabel)
 			})

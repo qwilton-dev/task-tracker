@@ -17,30 +17,66 @@ func NewProjectHandler(svc *service.ProjectService) *ProjectHandler {
 }
 
 func (h *ProjectHandler) Create(w http.ResponseWriter, r *http.Request) {
-	slug := chi.URLParam(r, "workspaceSlug")
+	workspaceID := chi.URLParam(r, "workspaceID")
 	var req struct {
 		Name string `json:"name"`
 		Key  string `json:"key,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "bad_request", "invalid json")
 		return
 	}
-	p, err := h.svc.CreateProject(r.Context(), slug, req.Name, req.Key)
+	p, err := h.svc.CreateProject(r.Context(), workspaceID, req.Name, req.Key)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
 		return
 	}
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(p)
+	writeJSON(w, http.StatusCreated, p)
 }
 
 func (h *ProjectHandler) List(w http.ResponseWriter, r *http.Request) {
-	slug := chi.URLParam(r, "workspaceSlug")
-	ps, err := h.svc.ListProjects(r.Context(), slug)
+	workspaceID := chi.URLParam(r, "workspaceID")
+	ps, err := h.svc.ListProjects(r.Context(), workspaceID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "internal_error", err.Error())
 		return
 	}
-	json.NewEncoder(w).Encode(ps)
+	writeJSON(w, http.StatusOK, ps)
+}
+
+func (h *ProjectHandler) Get(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "projectID")
+	p, err := h.svc.GetProject(r.Context(), id)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "not_found", "project not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, p)
+}
+
+func (h *ProjectHandler) Update(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "projectID")
+	var req struct {
+		Name string `json:"name"`
+		Key  string `json:"key,omitempty"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", "invalid json")
+		return
+	}
+	p, err := h.svc.UpdateProject(r.Context(), id, req.Name, req.Key)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, p)
+}
+
+func (h *ProjectHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "projectID")
+	if err := h.svc.DeleteProject(r.Context(), id); err != nil {
+		writeError(w, http.StatusNotFound, "not_found", "project not found")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

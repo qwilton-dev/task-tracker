@@ -5,31 +5,12 @@ import (
 	"net/http"
 	"task-tracker/internal/http/middleware"
 	"task-tracker/internal/service"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type WorkspaceMemberHandler struct {
 	workspaceMemberService *service.WorkspaceMemberService
-}
-
-type AddMemberRequest struct {
-	WorkspaceID string `json:"workspace_id"`
-	UserID      string `json:"user_id"`
-	Role        string `json:"role"`
-}
-
-type DeleteMemberRequest struct {
-	WorkspaceID string `json:"workspace_id"`
-	UserID      string `json:"user_id"`
-}
-type UpdateMemberRoleRequest struct {
-	WorkspaceID string `json:"workspace_id"`
-	UserID      string `json:"user_id"`
-	Role        string `json:"role"`
-}
-
-type ListMembersResponse struct {
-	UserID string `json:"user_id"`
-	Role   string `json:"role"`
 }
 
 func NewWorkspaceMemberHandler(workspaceMemberService *service.WorkspaceMemberService) *WorkspaceMemberHandler {
@@ -37,81 +18,81 @@ func NewWorkspaceMemberHandler(workspaceMemberService *service.WorkspaceMemberSe
 }
 
 func (h *WorkspaceMemberHandler) AddMember(w http.ResponseWriter, r *http.Request) {
+	workspaceID := chi.URLParam(r, "workspaceID")
 	_, ok := middleware.UserIDFrom(r.Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized", "unauthorized")
 		return
 	}
 
-	var req AddMemberRequest
+	var req struct {
+		UserID string `json:"user_id"`
+		Role   string `json:"role"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "bad_request", "invalid json")
 		return
 	}
-	err := h.workspaceMemberService.AddMember(r.Context(), req.WorkspaceID, req.UserID, req.Role)
+	err := h.workspaceMemberService.AddMember(r.Context(), workspaceID, req.UserID, req.Role)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *WorkspaceMemberHandler) ListMembers(w http.ResponseWriter, r *http.Request) {
+	workspaceID := chi.URLParam(r, "workspaceID")
 	_, ok := middleware.UserIDFrom(r.Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	workspaceID := r.URL.Query().Get("workspace_id")
-	if workspaceID == "" {
-		http.Error(w, "Bad Request: missing workspace_id", http.StatusBadRequest)
+		writeError(w, http.StatusUnauthorized, "unauthorized", "unauthorized")
 		return
 	}
 
 	members, err := h.workspaceMemberService.ListMembers(r.Context(), workspaceID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "internal_error", err.Error())
 		return
 	}
-	json.NewEncoder(w).Encode(members)
+	writeJSON(w, http.StatusOK, members)
 }
 
 func (h *WorkspaceMemberHandler) DeleteMember(w http.ResponseWriter, r *http.Request) {
+	workspaceID := chi.URLParam(r, "workspaceID")
+	userID := chi.URLParam(r, "memberID")
 	_, ok := middleware.UserIDFrom(r.Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized", "unauthorized")
 		return
 	}
 
-	var req DeleteMemberRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-		return
-	}
-	err := h.workspaceMemberService.RemoveMember(r.Context(), req.WorkspaceID, req.UserID)
+	err := h.workspaceMemberService.RemoveMember(r.Context(), workspaceID, userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, http.StatusNotFound, "not_found", err.Error())
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *WorkspaceMemberHandler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
+	workspaceID := chi.URLParam(r, "workspaceID")
+	userID := chi.URLParam(r, "memberID")
 	_, ok := middleware.UserIDFrom(r.Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized", "unauthorized")
 		return
 	}
 
-	var req UpdateMemberRoleRequest
+	var req struct {
+		Role string `json:"role"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "bad_request", "invalid json")
 		return
 	}
-	err := h.workspaceMemberService.UpdateMemberRole(r.Context(), req.WorkspaceID, req.UserID, req.Role)
+	err := h.workspaceMemberService.UpdateMemberRole(r.Context(), workspaceID, userID, req.Role)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

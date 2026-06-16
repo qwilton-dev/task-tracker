@@ -10,8 +10,11 @@ import (
 )
 
 type mockProjectRepo struct {
-	createFn func(ctx context.Context, p *domain.Project) error
-	listFn   func(ctx context.Context, workspaceID string) ([]*domain.Project, error)
+	createFn  func(ctx context.Context, p *domain.Project) error
+	listFn    func(ctx context.Context, workspaceID string) ([]*domain.Project, error)
+	getByIDFn func(ctx context.Context, id string) (*domain.Project, error)
+	updateFn  func(ctx context.Context, p *domain.Project) error
+	deleteFn  func(ctx context.Context, id string) error
 }
 
 var _ repository.ProjectRepository = (*mockProjectRepo)(nil)
@@ -32,6 +35,24 @@ func (m *mockProjectRepo) GetProjectsByWorkspace(ctx context.Context, workspaceI
 }
 func (m *mockProjectRepo) ExistsByKey(ctx context.Context, workspaceID, key string) (bool, error) {
 	return false, nil
+}
+func (m *mockProjectRepo) GetProjectByID(ctx context.Context, id string) (*domain.Project, error) {
+	if m.getByIDFn != nil {
+		return m.getByIDFn(ctx, id)
+	}
+	return nil, domain.ErrProjectNotFound
+}
+func (m *mockProjectRepo) UpdateProject(ctx context.Context, p *domain.Project) error {
+	if m.updateFn != nil {
+		return m.updateFn(ctx, p)
+	}
+	return nil
+}
+func (m *mockProjectRepo) DeleteProject(ctx context.Context, id string) error {
+	if m.deleteFn != nil {
+		return m.deleteFn(ctx, id)
+	}
+	return nil
 }
 
 func TestProjectService_CreateProject(t *testing.T) {

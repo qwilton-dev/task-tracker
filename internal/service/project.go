@@ -44,3 +44,31 @@ func (s *ProjectService) ListProjects(ctx context.Context, workspaceSlug string)
 	}
 	return s.projectRepo.GetProjectsByWorkspace(ctx, ws.ID)
 }
+
+func (s *ProjectService) GetProject(ctx context.Context, id string) (*domain.Project, error) {
+	return s.projectRepo.GetProjectByID(ctx, id)
+}
+
+func (s *ProjectService) UpdateProject(ctx context.Context, id, name, key string) (*domain.Project, error) {
+	p, err := s.projectRepo.GetProjectByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if name != "" {
+		p.Name = name
+	}
+	if key != "" {
+		if err := domain.ValidateProjectKey(key); err != nil {
+			return nil, err
+		}
+		p.Key = key
+	}
+	if err := s.projectRepo.UpdateProject(ctx, p); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func (s *ProjectService) DeleteProject(ctx context.Context, id string) error {
+	return s.projectRepo.DeleteProject(ctx, id)
+}
