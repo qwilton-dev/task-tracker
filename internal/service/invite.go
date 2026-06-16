@@ -49,11 +49,15 @@ func (s *InviteService) AcceptInvite(ctx context.Context, token, userID string) 
 	if err := s.inviteRepo.AcceptInvite(ctx, token); err != nil {
 		return err
 	}
-	return s.memberRepo.CreateWorkspaceMember(ctx, &domain.WorkspaceMember{
-		WorkspaceId: invite.WorkspaceID,
-		UserId:      userID,
-		Role:        invite.Role,
-	})
+	existing, _ := s.memberRepo.GetRole(ctx, invite.WorkspaceID, userID)
+	if existing == "" {
+		return s.memberRepo.CreateWorkspaceMember(ctx, &domain.WorkspaceMember{
+			WorkspaceId: invite.WorkspaceID,
+			UserId:      userID,
+			Role:        invite.Role,
+		})
+	}
+	return nil
 }
 
 func (s *InviteService) ListInvites(ctx context.Context, workspaceID string) ([]*domain.Invite, error) {

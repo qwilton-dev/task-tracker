@@ -73,8 +73,50 @@ async function showApp() {
         document.getElementById('main-content').classList.remove('hidden');
         document.getElementById('user-info').classList.remove('hidden');
         await loadWorkspaces();
+        await checkPendingInvites(user.email);
     } catch {
         logout();
+    }
+}
+
+async function checkPendingInvites(userEmail) {
+    try {
+        const ws = await api('GET', '/workspaces');
+        const arr = Array.isArray(ws) ? ws : [];
+        for (const w of arr) {
+            const invites = await api('GET', `/workspaces/${w.id}/invites`);
+            const pending = (Array.isArray(invites) ? invites : []).filter(i => !i.accepted_at && i.email === userEmail);
+            if (pending.length) {
+                showInviteModal(pending[0], w.name);
+                return;
+            }
+        }
+    } catch {}
+}
+
+function showInviteModal(invite, wsName) {
+    const modal = document.getElementById('modal');
+    document.getElementById('modal-body').innerHTML = `
+        <h2>You've been invited!</h2>
+        <p style="color:#c9d1d9;margin-bottom:16px">
+            You've been invited to workspace <strong>${escapeHtml(wsName)}</strong> as <strong>${invite.role}</strong>.
+        </p>
+        <div style="display:flex;gap:8px">
+            <button onclick="acceptInviteFromModal('${invite.token}')">Accept</button>
+            <button class="secondary" onclick="closeModal()">Later</button>
+        </div>
+    `;
+    modal.classList.remove('hidden');
+}
+
+async function acceptInviteFromModal(token) {
+    try {
+        await api('POST', `/invites/${token}/accept`);
+        alert('Welcome! You are now a member.');
+        closeModal();
+        await loadWorkspaces();
+    } catch (e) {
+        alert(e.message);
     }
 }
 
@@ -339,6 +381,15 @@ async function sendInvite() {
     }
 }
 
+function copyInviteLink(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    navigator.clipboard.writeText(input.value).then(() => {
+        const btn = input.nextElementSibling;
+        if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 1500); }
+    });
+}
+
 async function loadInvites() {
     try {
         const invites = await api('GET', `/workspaces/${currentWsId}/invites`);
@@ -353,14 +404,18 @@ async function loadInvites() {
         list.innerHTML = pending.map(i => {
             const expired = new Date(i.expires_at) < new Date();
             const status = expired ? '<span style="color:#f85149">expired</span>' : `<span style="color:#3fb950">active</span>`;
-            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #21262d">
-                <div>
-                    <span style="color:#f0f6fc;font-size:14px">${escapeHtml(i.email)}</span>
-                    <span class="label-pill" style="background:#21262d;color:#8b949e;padding:2px 8px;border-radius:12px;font-size:11px;margin-left:8px">${i.role}</span>
-                    ${status}
+            const link = `${window.location.origin}/?invite=${i.token}`;
+            return `<div style="padding:8px 0;border-bottom:1px solid #21262d">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                    <div>
+                        <span style="color:#f0f6fc;font-size:14px">${escapeHtml(i.email)}</span>
+                        <span class="label-pill" style="background:#21262d;color:#8b949e;padding:2px 8px;border-radius:12px;font-size:11px;margin-left:8px">${i.role}</span>
+                        ${status}
+                    </div>
                 </div>
-                <div style="font-size:11px;color:#484f58;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${i.token}">
-                    token: ${i.token.slice(0, 12)}...
+                <div style="margin-top:6px;display:flex;gap:6px;align-items:center">
+                    <input type="text" readonly value="${link}" style="font-size:11px;padding:4px 8px;background:#0d1117;border:1px solid #30363d;border-radius:4px;color:#8b949e;flex:1;margin-bottom:0" id="invite-link-${i.id}">
+                    <button class="secondary" style="margin-bottom:0;padding:4px 10px;font-size:11px;white-space:nowrap" onclick="copyInviteLink('invite-link-${i.id}')">Copy</button>
                 </div>
             </div>`;
         }).join('');
