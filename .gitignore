@@ -3,8 +3,10 @@
 !.env.example
 
 cmd/api/api
+bin/
 *.exe
 *.out
 *.test
 
 .DS_Store
+.mimocode/
