@@ -11,19 +11,17 @@ linters:
     - unused
     - ineffassign
     - gocritic
+  settings:
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
 
 formatters:
   enable:
     - gofmt
-
-linters-settings:
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - performance
-
-issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck
