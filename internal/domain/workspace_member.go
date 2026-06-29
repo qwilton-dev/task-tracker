@@ -42,8 +42,8 @@ func isValidRole(role string) bool {
 }
 
 var (
-	ErrWorkspaceMemberIdRequired    = errors.New("member id is required")
-	ErrWorkspaceIdRequired          = errors.New("workspace id is required")
-	ErrWorkspaceMemberRoleRequired  = errors.New("member role is required")
-	ErrWorkspaceMemberInvalidRole   = errors.New("role must be 'owner', 'member', or 'viewer'")
+	ErrWorkspaceMemberIdRequired   = errors.New("member id is required")
+	ErrWorkspaceIdRequired         = errors.New("workspace id is required")
+	ErrWorkspaceMemberRoleRequired = errors.New("member role is required")
+	ErrWorkspaceMemberInvalidRole  = errors.New("role must be 'owner', 'member', or 'viewer'")
 )

@@ -98,10 +98,10 @@ func (s *AuthService) Logout(ctx context.Context, refreshToken string) error {
 }
 
 type AuthService struct {
-	userRepo         repository.UserRepository
-	tokenRepo        repository.TokenRepository
-	jwt              *auth.JWTService
-	refreshTokenTTL  time.Duration
+	userRepo        repository.UserRepository
+	tokenRepo       repository.TokenRepository
+	jwt             *auth.JWTService
+	refreshTokenTTL time.Duration
 }
 
 func NewAuthService(userRepo repository.UserRepository, tokenRepo repository.TokenRepository, jwt *auth.JWTService, refreshTokenTTL time.Duration) *AuthService {

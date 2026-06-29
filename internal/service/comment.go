@@ -30,7 +30,7 @@ func (s *CommentService) CreateComment(ctx context.Context, issueID, authorID, b
 	if err := s.commentRepo.CreateComment(ctx, comment); err != nil {
 		return nil, err
 	}
-	s.activity.CreateActivityEvent(ctx, issueID, authorID, "comment.added", map[string]string{
+	_, _ = s.activity.CreateActivityEvent(ctx, issueID, authorID, "comment.added", map[string]string{
 		"comment_id": comment.ID,
 	})
 	issue, err := s.issueRepo.GetIssueByID(ctx, issueID)

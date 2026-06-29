@@ -50,4 +50,3 @@ func TestNewUser_NormalizesEmailAndName(t *testing.T) {
 		t.Fatalf("password hash: got %q", u.PasswordHash)
 	}
 }
-

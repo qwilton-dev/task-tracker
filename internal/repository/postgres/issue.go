@@ -39,7 +39,7 @@ func (r *IssueRepository) CreateIssueTx(ctx context.Context, issue *domain.Issue
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	var maxNum *int
 	err = tx.QueryRow(ctx, `SELECT MAX(number) FROM issues WHERE project_id = $1`, issue.ProjectID).Scan(&maxNum)
@@ -114,7 +114,6 @@ func (r *IssueRepository) ListIssuesByProject(ctx context.Context, projectID str
 	if filters.Q != "" {
 		query += ` AND title ILIKE $` + strconv.Itoa(argIdx)
 		args = append(args, "%"+filters.Q+"%")
-		argIdx++
 	}
 
 	query += ` ORDER BY status, position, created_at`

@@ -30,7 +30,7 @@ func (s *IssueService) CreateIssue(ctx context.Context, projectID, title, descri
 	if err := s.issueRepo.CreateIssueTx(ctx, issue); err != nil {
 		return nil, err
 	}
-	s.activity.CreateActivityEvent(ctx, issue.ID, createdBy, "issue.created", map[string]string{
+	_, _ = s.activity.CreateActivityEvent(ctx, issue.ID, createdBy, "issue.created", map[string]string{
 		"title": issue.Title,
 	})
 	s.publish(ctx, issue.ProjectID, "issue.created", issue)
@@ -70,7 +70,7 @@ func (s *IssueService) UpdateIssue(ctx context.Context, id, title, description, 
 	if err := s.issueRepo.UpdateIssue(ctx, issue); err != nil {
 		return nil, err
 	}
-	s.activity.CreateActivityEvent(ctx, issue.ID, actorID, "issue.updated", map[string]string{
+	_, _ = s.activity.CreateActivityEvent(ctx, issue.ID, actorID, "issue.updated", map[string]string{
 		"title": issue.Title,
 	})
 	s.publish(ctx, issue.ProjectID, "issue.updated", issue)
@@ -85,7 +85,7 @@ func (s *IssueService) DeleteIssue(ctx context.Context, id, actorID string) erro
 	if err := s.issueRepo.DeleteIssue(ctx, id); err != nil {
 		return err
 	}
-	s.activity.CreateActivityEvent(ctx, issue.ID, actorID, "issue.deleted", map[string]string{
+	_, _ = s.activity.CreateActivityEvent(ctx, issue.ID, actorID, "issue.deleted", map[string]string{
 		"title": issue.Title,
 	})
 	s.publish(ctx, issue.ProjectID, "issue.deleted", issue)
@@ -105,7 +105,7 @@ func (s *IssueService) MoveIssue(ctx context.Context, id, status string, positio
 	}
 	issue.Status = status
 	issue.Position = position
-	s.activity.CreateActivityEvent(ctx, issue.ID, actorID, "issue.moved", map[string]string{
+	_, _ = s.activity.CreateActivityEvent(ctx, issue.ID, actorID, "issue.moved", map[string]string{
 		"title": issue.Title,
 	})
 	s.publish(ctx, issue.ProjectID, "issue.moved", issue)

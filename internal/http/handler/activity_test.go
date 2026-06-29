@@ -10,8 +10,8 @@ import (
 	"task-tracker/internal/domain"
 	"task-tracker/internal/service"
 
-	"github.com/go-chi/chi/v5"
 	"context"
+	"github.com/go-chi/chi/v5"
 )
 
 type activityHandlerRepo struct {

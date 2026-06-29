@@ -10,10 +10,10 @@ import (
 )
 
 type mockInviteRepo struct {
-	createFn  func(ctx context.Context, invite *domain.Invite) error
-	getByFn   func(ctx context.Context, token string) (*domain.Invite, error)
-	acceptFn  func(ctx context.Context, token string) error
-	listFn    func(ctx context.Context, workspaceID string) ([]*domain.Invite, error)
+	createFn func(ctx context.Context, invite *domain.Invite) error
+	getByFn  func(ctx context.Context, token string) (*domain.Invite, error)
+	acceptFn func(ctx context.Context, token string) error
+	listFn   func(ctx context.Context, workspaceID string) ([]*domain.Invite, error)
 }
 
 var _ repository.InviteRepository = (*mockInviteRepo)(nil)
@@ -46,7 +46,7 @@ func (m *mockInviteRepo) ListInvitesByWorkspace(ctx context.Context, workspaceID
 }
 
 type mockMemberRepo struct {
-	createFn func(ctx context.Context, m *domain.WorkspaceMember) error
+	createFn  func(ctx context.Context, m *domain.WorkspaceMember) error
 	getRoleFn func(ctx context.Context, workspaceID, userID string) (string, error)
 }
 

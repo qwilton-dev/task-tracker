@@ -22,4 +22,3 @@ func TestMapUserError_UniqueViolation(t *testing.T) {
 		t.Fatalf("expected ErrEmailAlreadyExists, got %v", got)
 	}
 }
-

@@ -9,14 +9,14 @@ import (
 )
 
 type mockLabelRepo struct {
-	createFn       func(ctx context.Context, label *domain.Label) error
-	getByIDFn      func(ctx context.Context, id string) (*domain.Label, error)
-	listByWsFn     func(ctx context.Context, workspaceID string) ([]*domain.Label, error)
-	updateFn       func(ctx context.Context, label *domain.Label) error
-	deleteFn       func(ctx context.Context, id string) error
-	attachFn       func(ctx context.Context, issueID, labelID string) error
-	detachFn       func(ctx context.Context, issueID, labelID string) error
-	listByIssueFn  func(ctx context.Context, issueID string) ([]*domain.Label, error)
+	createFn      func(ctx context.Context, label *domain.Label) error
+	getByIDFn     func(ctx context.Context, id string) (*domain.Label, error)
+	listByWsFn    func(ctx context.Context, workspaceID string) ([]*domain.Label, error)
+	updateFn      func(ctx context.Context, label *domain.Label) error
+	deleteFn      func(ctx context.Context, id string) error
+	attachFn      func(ctx context.Context, issueID, labelID string) error
+	detachFn      func(ctx context.Context, issueID, labelID string) error
+	listByIssueFn func(ctx context.Context, issueID string) ([]*domain.Label, error)
 }
 
 var _ repository.LabelRepository = (*mockLabelRepo)(nil)

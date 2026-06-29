@@ -37,7 +37,7 @@ func (h *SSEHandler) Stream(w http.ResponseWriter, r *http.Request) {
 	for {
 		select {
 		case event := <-eventCh:
-			fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event.Type, string(event.Payload))
+			_, _ = fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event.Type, string(event.Payload))
 			flusher.Flush()
 		case <-ctx.Done():
 			return

@@ -11,8 +11,8 @@ import (
 )
 
 type InviteService struct {
-	inviteRepo    repository.InviteRepository
-	memberRepo    repository.WorkspaceMemberRepository
+	inviteRepo repository.InviteRepository
+	memberRepo repository.WorkspaceMemberRepository
 }
 
 func NewInviteService(inviteRepo repository.InviteRepository, memberRepo repository.WorkspaceMemberRepository) *InviteService {

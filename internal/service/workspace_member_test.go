@@ -9,9 +9,9 @@ import (
 )
 
 type mockWorkspaceMemberRepo struct {
-	createFn    func(ctx context.Context, m *domain.WorkspaceMember) error
-	listFn      func(ctx context.Context, workspaceId string) ([]*domain.WorkspaceMember, error)
-	deleteFn    func(ctx context.Context, m *domain.WorkspaceMember) error
+	createFn     func(ctx context.Context, m *domain.WorkspaceMember) error
+	listFn       func(ctx context.Context, workspaceId string) ([]*domain.WorkspaceMember, error)
+	deleteFn     func(ctx context.Context, m *domain.WorkspaceMember) error
 	updateRoleFn func(ctx context.Context, m *domain.WorkspaceMember) error
 }
 

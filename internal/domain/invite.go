@@ -18,13 +18,13 @@ type Invite struct {
 }
 
 var (
-	ErrInviteEmailRequired    = errors.New("invite email is required")
-	ErrInviteRoleRequired     = errors.New("invite role is required")
-	ErrInviteInvalidRole      = errors.New("invite role must be 'member' or 'viewer'")
-	ErrInviteNotFound         = errors.New("invite not found")
-	ErrInviteExpired          = errors.New("invite has expired")
-	ErrInviteAlreadyAccepted  = errors.New("invite already accepted")
-	ErrInviteTokenRequired    = errors.New("invite token is required")
+	ErrInviteEmailRequired   = errors.New("invite email is required")
+	ErrInviteRoleRequired    = errors.New("invite role is required")
+	ErrInviteInvalidRole     = errors.New("invite role must be 'member' or 'viewer'")
+	ErrInviteNotFound        = errors.New("invite not found")
+	ErrInviteExpired         = errors.New("invite has expired")
+	ErrInviteAlreadyAccepted = errors.New("invite already accepted")
+	ErrInviteTokenRequired   = errors.New("invite token is required")
 )
 
 func NewInvite(workspaceID, email, role, token, createdBy string, expiresAt time.Time) (*Invite, error) {

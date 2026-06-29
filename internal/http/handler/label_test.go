@@ -10,8 +10,8 @@ import (
 	"task-tracker/internal/domain"
 	"task-tracker/internal/service"
 
-	"github.com/go-chi/chi/v5"
 	"context"
+	"github.com/go-chi/chi/v5"
 )
 
 type labelHandlerLabelRepo struct {
@@ -38,8 +38,10 @@ func (r *labelHandlerLabelRepo) ListLabelsByWorkspace(ctx context.Context, works
 	}
 	return nil, nil
 }
-func (r *labelHandlerLabelRepo) UpdateLabel(ctx context.Context, label *domain.Label) error { return nil }
-func (r *labelHandlerLabelRepo) DeleteLabel(ctx context.Context, id string) error          { return nil }
+func (r *labelHandlerLabelRepo) UpdateLabel(ctx context.Context, label *domain.Label) error {
+	return nil
+}
+func (r *labelHandlerLabelRepo) DeleteLabel(ctx context.Context, id string) error { return nil }
 func (r *labelHandlerLabelRepo) AttachLabel(ctx context.Context, issueID, labelID string) error {
 	if r.attachFn != nil {
 		return r.attachFn(ctx, issueID, labelID)

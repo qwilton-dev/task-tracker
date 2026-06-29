@@ -65,7 +65,7 @@ func (s *LabelService) AttachLabel(ctx context.Context, issueID, labelID, actorI
 	if label != nil {
 		labelName = label.Name
 	}
-	s.activity.CreateActivityEvent(ctx, issueID, actorID, "issue.label_added", map[string]string{
+	_, _ = s.activity.CreateActivityEvent(ctx, issueID, actorID, "issue.label_added", map[string]string{
 		"label_id": labelID,
 		"name":     labelName,
 	})
@@ -81,7 +81,7 @@ func (s *LabelService) DetachLabel(ctx context.Context, issueID, labelID, actorI
 	if label != nil {
 		labelName = label.Name
 	}
-	s.activity.CreateActivityEvent(ctx, issueID, actorID, "issue.label_removed", map[string]string{
+	_, _ = s.activity.CreateActivityEvent(ctx, issueID, actorID, "issue.label_removed", map[string]string{
 		"label_id": labelID,
 		"name":     labelName,
 	})

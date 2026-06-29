@@ -41,8 +41,12 @@ type commentHandlerIssueRepo struct {
 	getByIDFn func(ctx context.Context, id string) (*domain.Issue, error)
 }
 
-func (r *commentHandlerIssueRepo) CreateIssue(ctx context.Context, issue *domain.Issue) error { return nil }
-func (r *commentHandlerIssueRepo) CreateIssueTx(ctx context.Context, issue *domain.Issue) error { return nil }
+func (r *commentHandlerIssueRepo) CreateIssue(ctx context.Context, issue *domain.Issue) error {
+	return nil
+}
+func (r *commentHandlerIssueRepo) CreateIssueTx(ctx context.Context, issue *domain.Issue) error {
+	return nil
+}
 func (r *commentHandlerIssueRepo) GetIssueByID(ctx context.Context, id string) (*domain.Issue, error) {
 	if r.getByIDFn != nil {
 		return r.getByIDFn(ctx, id)
@@ -52,8 +56,10 @@ func (r *commentHandlerIssueRepo) GetIssueByID(ctx context.Context, id string) (
 func (r *commentHandlerIssueRepo) ListIssuesByProject(ctx context.Context, projectID string, filters repository.IssueFilters) ([]*domain.Issue, error) {
 	return nil, nil
 }
-func (r *commentHandlerIssueRepo) UpdateIssue(ctx context.Context, issue *domain.Issue) error { return nil }
-func (r *commentHandlerIssueRepo) DeleteIssue(ctx context.Context, id string) error          { return nil }
+func (r *commentHandlerIssueRepo) UpdateIssue(ctx context.Context, issue *domain.Issue) error {
+	return nil
+}
+func (r *commentHandlerIssueRepo) DeleteIssue(ctx context.Context, id string) error { return nil }
 func (r *commentHandlerIssueRepo) MoveIssue(ctx context.Context, id, status string, position float64) error {
 	return nil
 }

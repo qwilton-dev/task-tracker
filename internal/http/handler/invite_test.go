@@ -12,13 +12,13 @@ import (
 	"task-tracker/internal/http/middleware"
 	"task-tracker/internal/service"
 
-	"github.com/go-chi/chi/v5"
 	"context"
+	"github.com/go-chi/chi/v5"
 )
 
 type handlerMemberRepo struct {
-	createFn    func(ctx context.Context, m *domain.WorkspaceMember) error
-	getRoleFn   func(ctx context.Context, workspaceID, userID string) (string, error)
+	createFn  func(ctx context.Context, m *domain.WorkspaceMember) error
+	getRoleFn func(ctx context.Context, workspaceID, userID string) (string, error)
 }
 
 func (r *handlerMemberRepo) CreateWorkspaceMember(ctx context.Context, m *domain.WorkspaceMember) error {

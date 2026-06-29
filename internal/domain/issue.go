@@ -21,11 +21,11 @@ type Issue struct {
 }
 
 var (
-	ErrIssueTitleRequired = errors.New("issue title is required")
-	ErrIssueTitleTooLong  = errors.New("issue title must be 1-500 characters")
-	ErrIssueInvalidStatus = errors.New("invalid issue status")
+	ErrIssueTitleRequired   = errors.New("issue title is required")
+	ErrIssueTitleTooLong    = errors.New("issue title must be 1-500 characters")
+	ErrIssueInvalidStatus   = errors.New("invalid issue status")
 	ErrIssueInvalidPriority = errors.New("invalid issue priority")
-	ErrIssueNotFound      = errors.New("issue not found")
+	ErrIssueNotFound        = errors.New("issue not found")
 )
 
 var validStatuses = map[string]bool{
@@ -37,11 +37,11 @@ var validStatuses = map[string]bool{
 }
 
 var validPriorities = map[string]bool{
-	"none":    true,
-	"low":     true,
-	"medium":  true,
-	"high":    true,
-	"urgent":  true,
+	"none":   true,
+	"low":    true,
+	"medium": true,
+	"high":   true,
+	"urgent": true,
 }
 
 func NewIssue(projectID, title, createdBy string) (*Issue, error) {

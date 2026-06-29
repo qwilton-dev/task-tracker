@@ -31,7 +31,6 @@ func NewRouter(authHandler *handler.AuthHandler,
 
 	r.Use(middleware.CORS(corsOrigins))
 	r.Use(chimiddleware.RequestID)
-	r.Use(chimiddleware.RealIP)
 	r.Use(chimiddleware.Logger)
 	r.Use(chimiddleware.Recoverer)
 	r.Use(chimiddleware.StripSlashes)
@@ -69,14 +68,14 @@ func NewRouter(authHandler *handler.AuthHandler,
 				r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleOwner)).Patch("/", workspaceHandler.Update)
 				r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleOwner)).Delete("/", workspaceHandler.Delete)
 
-			r.Route("/projects", func(r chi.Router) {
-				r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleMember)).Post("/", projectHandler.Create)
-				r.Get("/", projectHandler.List)
-			})
-			r.Route("/labels", func(r chi.Router) {
-				r.Get("/", labelHandler.ListLabels)
-				r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleMember)).Post("/", labelHandler.CreateLabel)
-			})
+				r.Route("/projects", func(r chi.Router) {
+					r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleMember)).Post("/", projectHandler.Create)
+					r.Get("/", projectHandler.List)
+				})
+				r.Route("/labels", func(r chi.Router) {
+					r.Get("/", labelHandler.ListLabels)
+					r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleMember)).Post("/", labelHandler.CreateLabel)
+				})
 				r.Route("/members", func(r chi.Router) {
 					r.Get("/", workspaceMemberHandler.ListMembers)
 					r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleOwner)).Post("/", workspaceMemberHandler.AddMember)
