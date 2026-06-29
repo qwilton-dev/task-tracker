@@ -1,7 +1,6 @@
 const API = '/api/v1';
 let token = localStorage.getItem('token');
 let currentProject = null;
-let currentWsSlug = null;
 let currentWsId = null;
 let workspaceLabels = [];
 let workspaces = [];
@@ -18,6 +17,15 @@ async function api(method, path, body) {
     const data = JSON.parse(text);
     if (!res.ok) throw new Error(data.error?.message || 'Request failed');
     return data;
+}
+
+function toast(msg, type = 'info') {
+    const el = document.createElement('div');
+    el.style.cssText = `position:fixed;top:16px;right:16px;z-index:200;padding:12px 20px;border-radius:6px;font-size:14px;color:#fff;animation:fadeIn .2s;max-width:400px;word-break:break-word;`;
+    el.style.background = type === 'error' ? '#da3633' : type === 'success' ? '#238636' : '#1f6feb';
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
 }
 
 function showLogin() {
@@ -39,7 +47,7 @@ async function login() {
         localStorage.setItem('token', token);
         showApp();
     } catch (e) {
-        alert(e.message);
+        toast(e.message, 'error');
     }
 }
 
@@ -49,10 +57,10 @@ async function register() {
     const password = document.getElementById('reg-password').value;
     try {
         await api('POST', '/auth/register', { name, email, password });
-        alert('Registered! Now login.');
+        toast('Registered! Now login.', 'success');
         showLogin();
     } catch (e) {
-        alert(e.message);
+        toast(e.message, 'error');
     }
 }
 
@@ -109,14 +117,14 @@ function showInviteModal(invite, wsName) {
     modal.classList.remove('hidden');
 }
 
-async function acceptInviteFromModal(token) {
+async function acceptInviteFromModal(inviteToken) {
     try {
-        await api('POST', `/invites/${token}/accept`);
-        alert('Welcome! You are now a member.');
+        await api('POST', `/invites/${inviteToken}/accept`);
+        toast('Welcome! You are now a member.', 'success');
         closeModal();
         await loadWorkspaces();
     } catch (e) {
-        alert(e.message);
+        toast(e.message, 'error');
     }
 }
 
@@ -127,7 +135,7 @@ async function loadWorkspaces() {
         const sel = document.getElementById('workspace-select');
         sel.innerHTML = '<option value="">Select workspace</option>';
         workspaces.forEach(w => {
-            sel.innerHTML += `<option value="${w.slug}" data-id="${w.id}">${w.name}</option>`;
+            sel.innerHTML += `<option value="${w.id}">${w.name}</option>`;
         });
     } catch (e) {
         console.error(e);
@@ -136,14 +144,14 @@ async function loadWorkspaces() {
 
 async function createWorkspace() {
     const name = document.getElementById('ws-name').value.trim();
-    const slug = document.getElementById('ws-slug').value.trim();
-    if (!name || !slug) return alert('Name and slug required');
+    if (!name) return toast('Name is required', 'error');
     try {
-        await api('POST', '/workspaces', { name, slug });
+        await api('POST', '/workspaces', { name });
         closeModal();
+        toast('Workspace created', 'success');
         await loadWorkspaces();
     } catch (e) {
-        alert(e.message);
+        toast(e.message, 'error');
     }
 }
 
@@ -151,32 +159,36 @@ function showCreateWorkspace() {
     const modal = document.getElementById('modal');
     document.getElementById('modal-body').innerHTML = `
         <h2>New Workspace</h2>
-        <input type="text" id="ws-name" placeholder="Name">
-        <input type="text" id="ws-slug" placeholder="Slug (e.g. my-team)">
+        <input type="text" id="ws-name" placeholder="Name" onkeydown="if(event.key==='Enter')createWorkspace()">
         <button onclick="createWorkspace()">Create</button>
     `;
     modal.classList.remove('hidden');
+    document.getElementById('ws-name').focus();
 }
 
 async function loadProjects() {
-    const slug = document.getElementById('workspace-select').value;
-    currentWsSlug = slug;
-    const opt = document.getElementById('workspace-select').selectedOptions[0];
-    currentWsId = opt?.dataset?.id || null;
-    if (!slug) {
+    const wsId = document.getElementById('workspace-select').value;
+    currentWsId = wsId;
+    if (!wsId) {
         document.getElementById('project-select-list').innerHTML = '<option value="">Select project</option>';
         document.getElementById('board').classList.add('hidden');
         workspaceLabels = [];
+        currentProject = null;
         return;
     }
     try {
-        const ps = await api('GET', `/workspaces/${currentWsId}/projects`);
+        const ps = await api('GET', `/workspaces/${wsId}/projects`);
         const sel = document.getElementById('project-select-list');
         sel.innerHTML = '<option value="">Select project</option>';
         (Array.isArray(ps) ? ps : []).forEach(p => {
             sel.innerHTML += `<option value="${p.id}" data-key="${p.key}">${p.key} - ${p.name}</option>`;
         });
         await loadLabels();
+        if (currentProject) {
+            document.getElementById('board').classList.add('hidden');
+            currentProject = null;
+            disconnectSSE();
+        }
     } catch (e) {
         console.error(e);
     }
@@ -191,30 +203,32 @@ async function loadLabels() {
 }
 
 function showCreateProject() {
-    if (!currentWsSlug) return alert('Select a workspace first');
+    if (!currentWsId) return toast('Select a workspace first', 'error');
     const modal = document.getElementById('modal');
     document.getElementById('modal-body').innerHTML = `
         <h2>New Project</h2>
-        <input type="text" id="proj-name" placeholder="Name">
+        <input type="text" id="proj-name" placeholder="Name" onkeydown="if(event.key==='Enter')createProject()">
         <button onclick="createProject()">Create</button>
     `;
     modal.classList.remove('hidden');
+    document.getElementById('proj-name').focus();
 }
 
 async function createProject() {
     const name = document.getElementById('proj-name').value.trim();
-    if (!name) return alert('Name is required');
+    if (!name) return toast('Name is required', 'error');
     try {
         await api('POST', `/workspaces/${currentWsId}/projects`, { name });
         closeModal();
+        toast('Project created', 'success');
         await loadProjects();
     } catch (e) {
-        alert(e.message);
+        toast(e.message, 'error');
     }
 }
 
 function showManageLabels() {
-    if (!currentWsSlug) return alert('Select a workspace first');
+    if (!currentWsId) return toast('Select a workspace first', 'error');
     const modal = document.getElementById('modal');
     const listHtml = workspaceLabels.length
         ? workspaceLabels.map(l => `<div class="label-item" style="display:flex;align-items:center;gap:8px;padding:6px 0"><span class="label-pill" style="background:${l.color};color:#fff;padding:2px 8px;border-radius:12px;font-size:12px">${escapeHtml(l.name)}</span></div>`).join('')
@@ -224,7 +238,7 @@ function showManageLabels() {
         <h2>Manage Labels</h2>
         <div id="labels-list">${listHtml}</div>
         <div style="margin-top:16px;border-top:1px solid #30363d;padding-top:12px">
-            <input type="text" id="new-label-name" placeholder="Label name">
+            <input type="text" id="new-label-name" placeholder="Label name" onkeydown="if(event.key==='Enter')createLabel()">
             <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
                 <label style="font-size:12px;color:#8b949e">Color</label>
                 <input type="color" id="new-label-color" value="#58a6ff" style="width:40px;height:32px;padding:2px;border:1px solid #30363d;background:#0d1117;border-radius:4px;cursor:pointer">
@@ -238,13 +252,13 @@ function showManageLabels() {
 async function createLabel() {
     const name = document.getElementById('new-label-name').value.trim();
     const color = document.getElementById('new-label-color').value;
-    if (!name) return alert('Name is required');
+    if (!name) return toast('Name is required', 'error');
     try {
         await api('POST', `/workspaces/${currentWsId}/labels`, { name, color });
         await loadLabels();
         showManageLabels();
     } catch (e) {
-        alert(e.message);
+        toast(e.message, 'error');
     }
 }
 
@@ -257,7 +271,7 @@ async function attachLabel(issueId) {
         const issue = await api('GET', `/issues/${issueId}`);
         showIssueDetail(issue);
     } catch (e) {
-        alert(e.message);
+        toast(e.message, 'error');
     }
 }
 
@@ -267,17 +281,16 @@ async function detachLabel(issueId, labelId) {
         const issue = await api('GET', `/issues/${issueId}`);
         showIssueDetail(issue);
     } catch (e) {
-        alert(e.message);
+        toast(e.message, 'error');
     }
 }
 
 async function showManageMembers() {
-    if (!currentWsId) return alert('Select a workspace first');
+    if (!currentWsId) return toast('Select a workspace first', 'error');
     const modal = document.getElementById('modal');
-    let membersHtml = '<p style="color:#8b949e;font-size:14px">Loading...</p>';
     document.getElementById('modal-body').innerHTML = `
         <h2>Workspace Members</h2>
-        <div id="members-list">${membersHtml}</div>
+        <div id="members-list"><p style="color:#8b949e;font-size:14px">Loading...</p></div>
         <div style="margin-top:16px;border-top:1px solid #30363d;padding-top:12px">
             <input type="text" id="new-member-id" placeholder="User ID">
             <select id="new-member-role">
@@ -289,7 +302,7 @@ async function showManageMembers() {
         </div>
         <div style="margin-top:16px;border-top:1px solid #30363d;padding-top:12px">
             <h3 style="font-size:14px;color:#8b949e;margin-bottom:8px">Invite Member</h3>
-            <input type="email" id="invite-email" placeholder="Email">
+            <input type="email" id="invite-email" placeholder="Email" onkeydown="if(event.key==='Enter')sendInvite()">
             <select id="invite-role">
                 <option value="member">Member</option>
                 <option value="viewer">Viewer</option>
@@ -318,7 +331,7 @@ async function loadMembers() {
         list.innerHTML = arr.map(m => `
             <div class="member-item" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #21262d">
                 <div>
-                    <span style="color:#f0f6fc;font-size:14px">${escapeHtml(m.user_name || m.user_id)}</span>
+                    <span style="color:#f0f6fc;font-size:14px">${escapeHtml(m.user_name || m.user_id.slice(0,8))}</span>
                     <span class="label-pill" style="background:#21262d;color:#8b949e;padding:2px 8px;border-radius:12px;font-size:11px;margin-left:8px">${m.role}</span>
                 </div>
                 <div style="display:flex;gap:4px">
@@ -338,21 +351,23 @@ async function loadMembers() {
 async function addMember() {
     const userId = document.getElementById('new-member-id').value.trim();
     const role = document.getElementById('new-member-role').value;
-    if (!userId) return alert('User ID is required');
+    if (!userId) return toast('User ID is required', 'error');
     try {
         await api('POST', `/workspaces/${currentWsId}/members`, { user_id: userId, role });
         document.getElementById('new-member-id').value = '';
+        toast('Member added', 'success');
         await loadMembers();
     } catch (e) {
-        alert(e.message);
+        toast(e.message, 'error');
     }
 }
 
 async function updateMemberRole(userId, role) {
     try {
         await api('PATCH', `/workspaces/${currentWsId}/members/${userId}`, { role });
+        toast('Role updated', 'success');
     } catch (e) {
-        alert(e.message);
+        toast(e.message, 'error');
         await loadMembers();
     }
 }
@@ -361,33 +376,25 @@ async function removeMember(userId) {
     if (!confirm('Remove this member?')) return;
     try {
         await api('DELETE', `/workspaces/${currentWsId}/members/${userId}`);
+        toast('Member removed', 'success');
         await loadMembers();
     } catch (e) {
-        alert(e.message);
+        toast(e.message, 'error');
     }
 }
 
 async function sendInvite() {
     const email = document.getElementById('invite-email').value.trim();
     const role = document.getElementById('invite-role').value;
-    if (!email) return alert('Email is required');
+    if (!email) return toast('Email is required', 'error');
     try {
         await api('POST', `/workspaces/${currentWsId}/invites`, { email, role });
-        alert('Invite sent!');
+        toast('Invite sent!', 'success');
         document.getElementById('invite-email').value = '';
         await loadInvites();
     } catch (e) {
-        alert(e.message);
+        toast(e.message, 'error');
     }
-}
-
-function copyInviteLink(inputId) {
-    const input = document.getElementById(inputId);
-    if (!input) return;
-    navigator.clipboard.writeText(input.value).then(() => {
-        const btn = input.nextElementSibling;
-        if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 1500); }
-    });
 }
 
 async function loadInvites() {
@@ -425,11 +432,30 @@ async function loadInvites() {
     }
 }
 
+function copyInviteLink(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    navigator.clipboard.writeText(input.value).then(() => {
+        const btn = input.nextElementSibling;
+        if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 1500); }
+    });
+}
+
+function copyInviteLink(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    navigator.clipboard.writeText(input.value).then(() => {
+        const btn = input.nextElementSibling;
+        if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 1500); }
+    });
+}
+
 async function loadIssues() {
     const projectId = document.getElementById('project-select-list').value;
     if (!projectId) {
         document.getElementById('board').classList.add('hidden');
         disconnectSSE();
+        currentProject = null;
         return;
     }
     currentProject = {
@@ -558,6 +584,9 @@ function renderBoard(issues) {
         const status = col.dataset.status;
         const container = col.querySelector('.issues');
         container.innerHTML = '';
+        if (!columns[status].length) {
+            container.innerHTML = '<p style="color:#484f58;font-size:12px;text-align:center;padding:8px">No issues</p>';
+        }
         columns[status].forEach(issue => {
             const card = document.createElement('div');
             card.className = 'issue-card';
@@ -583,7 +612,7 @@ function renderBoard(issues) {
             try {
                 await api('PATCH', `/issues/${draggedId}/move`, { status: newStatus, position: 0 });
                 await loadIssues();
-            } catch (err) { alert(err.message); }
+            } catch (err) { toast(err.message, 'error'); }
             draggedId = null;
         };
     });
@@ -598,27 +627,29 @@ function onDragStart(e) {
 }
 
 function showCreateIssue() {
-    if (!currentProject) return alert('Select a project first');
+    if (!currentProject) return toast('Select a project first', 'error');
     const modal = document.getElementById('modal');
     document.getElementById('modal-body').innerHTML = `
         <h2>New Issue</h2>
-        <input type="text" id="new-issue-title" placeholder="Title">
+        <input type="text" id="new-issue-title" placeholder="Title" onkeydown="if(event.key==='Enter')createIssue()">
         <textarea id="new-issue-desc" placeholder="Description (optional)"></textarea>
         <button onclick="createIssue()">Create</button>
     `;
     modal.classList.remove('hidden');
+    document.getElementById('new-issue-title').focus();
 }
 
 async function createIssue() {
     const title = document.getElementById('new-issue-title').value;
     const description = document.getElementById('new-issue-desc').value;
-    if (!title) return alert('Title is required');
+    if (!title) return toast('Title is required', 'error');
     try {
         await api('POST', `/projects/${currentProject.id}/issues`, { title, description });
         closeModal();
+        toast('Issue created', 'success');
         await loadIssues();
     } catch (e) {
-        alert(e.message);
+        toast(e.message, 'error');
     }
 }
 
@@ -738,9 +769,10 @@ async function updateIssue(id) {
         await api('PATCH', `/issues/${id}`, { title, description, priority });
         if (status) await api('PATCH', `/issues/${id}/move`, { status, position: 0 });
         closeModal();
+        toast('Issue updated', 'success');
         await loadIssues();
     } catch (e) {
-        alert(e.message);
+        toast(e.message, 'error');
     }
 }
 
@@ -749,9 +781,10 @@ async function deleteIssue(id) {
     try {
         await api('DELETE', `/issues/${id}`);
         closeModal();
+        toast('Issue deleted', 'success');
         await loadIssues();
     } catch (e) {
-        alert(e.message);
+        toast(e.message, 'error');
     }
 }
 
@@ -763,7 +796,7 @@ async function addComment(issueId) {
         const issue = await api('GET', `/issues/${issueId}`);
         showIssueDetail(issue);
     } catch (e) {
-        alert(e.message);
+        toast(e.message, 'error');
     }
 }
 
@@ -784,7 +817,7 @@ async function resolveUserName(userId) {
     try {
         const members = await api('GET', `/workspaces/${currentWsId}/members`);
         const arr = Array.isArray(members) ? members : [];
-        arr.forEach(m => { userCache[m.user_id] = m.user_name || m.user_id; });
+        arr.forEach(m => { userCache[m.user_id] = m.user_name || m.user_id.slice(0, 8); });
     } catch {}
     return userCache[userId] || userId.slice(0, 8);
 }
@@ -804,24 +837,24 @@ function formatActivityEvent(e) {
     }
 }
 
+function acceptInvite(inviteToken) {
+    if (!token) {
+        toast('Please login first, then visit this link again.', 'error');
+        return;
+    }
+    api('POST', `/invites/${inviteToken}/accept`).then(() => {
+        toast('Welcome! You are now a member.', 'success');
+        window.location.href = '/';
+    }).catch(e => toast('Failed to accept invite: ' + e.message, 'error'));
+}
+
 document.getElementById('modal').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeModal();
 });
 
-async function acceptInvite(inviteToken) {
-    if (!token) {
-        alert('Please login first, then visit this link again.');
-        showApp();
-        return;
-    }
-    try {
-        await api('POST', `/invites/${inviteToken}/accept`);
-        alert('Invite accepted! You are now a member.');
-        window.location.href = '/';
-    } catch (e) {
-        alert('Failed to accept invite: ' + e.message);
-    }
-}
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+});
 
 if (token) {
     const params = new URLSearchParams(window.location.search);

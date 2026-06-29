@@ -60,13 +60,8 @@ func (r *projHandlerProjectRepo) DeleteProject(ctx context.Context, id string) e
 }
 
 func TestProjectHandler_Create_201(t *testing.T) {
-	wsRepo := &wsHandlerRepo{
-		getBySlugFn: func(ctx context.Context, slug string) (*domain.Workspace, error) {
-			return &domain.Workspace{ID: "ws-1", Slug: slug}, nil
-		},
-	}
 	projRepo := &projHandlerProjectRepo{}
-	svc := service.NewProjectService(projRepo, wsRepo)
+	svc := service.NewProjectService(projRepo)
 	h := NewProjectHandler(svc)
 
 	body := bytes.NewBufferString(`{"name":"Backend","key":"BE"}`)
@@ -92,9 +87,8 @@ func TestProjectHandler_Create_201(t *testing.T) {
 }
 
 func TestProjectHandler_Create_400_BadJSON(t *testing.T) {
-	wsRepo := &wsHandlerRepo{}
 	projRepo := &projHandlerProjectRepo{}
-	svc := service.NewProjectService(projRepo, wsRepo)
+	svc := service.NewProjectService(projRepo)
 	h := NewProjectHandler(svc)
 
 	body := bytes.NewBufferString(`not json`)
@@ -112,11 +106,6 @@ func TestProjectHandler_Create_400_BadJSON(t *testing.T) {
 }
 
 func TestProjectHandler_List_200(t *testing.T) {
-	wsRepo := &wsHandlerRepo{
-		getBySlugFn: func(ctx context.Context, slug string) (*domain.Workspace, error) {
-			return &domain.Workspace{ID: "ws-1"}, nil
-		},
-	}
 	projRepo := &projHandlerProjectRepo{
 		listFn: func(ctx context.Context, workspaceID string) ([]*domain.Project, error) {
 			return []*domain.Project{
@@ -124,7 +113,7 @@ func TestProjectHandler_List_200(t *testing.T) {
 			}, nil
 		},
 	}
-	svc := service.NewProjectService(projRepo, wsRepo)
+	svc := service.NewProjectService(projRepo)
 	h := NewProjectHandler(svc)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/workspaces/ws-1/projects", nil)

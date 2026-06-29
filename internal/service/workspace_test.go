@@ -12,7 +12,6 @@ import (
 type mockWorkspaceRepo struct {
 	createFn    func(ctx context.Context, ws *domain.Workspace) error
 	getByIDFn   func(ctx context.Context, id string) (*domain.Workspace, error)
-	getBySlugFn func(ctx context.Context, slug string) (*domain.Workspace, error)
 	updateFn    func(ctx context.Context, ws *domain.Workspace) error
 	deleteFn    func(ctx context.Context, id string) error
 	listFn      func(ctx context.Context, userID string) ([]*domain.Workspace, error)
@@ -33,13 +32,7 @@ func (m *mockWorkspaceRepo) GetWorkspaceByID(ctx context.Context, id string) (*d
 	if m.getByIDFn != nil {
 		return m.getByIDFn(ctx, id)
 	}
-	return nil, domain.ErrWorkspaceNameRequired
-}
-func (m *mockWorkspaceRepo) GetWorkspaceBySlug(ctx context.Context, slug string) (*domain.Workspace, error) {
-	if m.getBySlugFn != nil {
-		return m.getBySlugFn(ctx, slug)
-	}
-	return nil, domain.ErrWorkspaceSlugRequired
+	return nil, domain.ErrWorkspaceNotFound
 }
 func (m *mockWorkspaceRepo) UpdateWorkspace(ctx context.Context, ws *domain.Workspace) error {
 	if m.updateFn != nil {
@@ -80,7 +73,7 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 	}
 	svc := NewWorkspaceService(repo)
 
-	ws, err := svc.CreateWorkspace(context.Background(), "user-1", "My Workspace", "my-ws")
+	ws, err := svc.CreateWorkspace(context.Background(), "user-1", "My Workspace")
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
@@ -98,15 +91,11 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 	}
 }
 
-func TestWorkspaceService_CreateWorkspace_Validation(t *testing.T) {
+func TestWorkspaceService_CreateWorkspace_EmptyName(t *testing.T) {
 	svc := NewWorkspaceService(&mockWorkspaceRepo{})
-	_, err := svc.CreateWorkspace(context.Background(), "user-1", "", "slug")
+	_, err := svc.CreateWorkspace(context.Background(), "user-1", "")
 	if err != domain.ErrWorkspaceNameRequired {
 		t.Fatalf("expected ErrWorkspaceNameRequired, got %v", err)
-	}
-	_, err = svc.CreateWorkspace(context.Background(), "user-1", "name", "")
-	if err != domain.ErrWorkspaceSlugRequired {
-		t.Fatalf("expected ErrWorkspaceSlugRequired, got %v", err)
 	}
 }
 

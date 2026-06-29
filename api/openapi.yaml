@@ -1,29 +1,68 @@
 openapi: 3.0.3
 info:
   title: Task Tracker API
-  version: 1.0.0
+  version: 2.0.0
+  description: Issue tracker with workspaces, projects, kanban board, labels, comments, activity, and SSE real-time events.
+
 servers:
   - url: /api/v1
+
+security:
+  - BearerAuth: []
+
 paths:
+  /healthz:
+    get:
+      summary: Liveness check
+      security: []
+      tags: [System]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {type: object, properties: {status: {type: string, example: ok}}}
+
+  /readyz:
+    get:
+      summary: Readiness check
+      security: []
+      tags: [System]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {type: object, properties: {status: {type: string, example: ok}}}
+
   /auth/register:
     post:
       summary: Register a new user
+      security: []
+      tags: [Auth]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
               required: [email, password, name]
               properties:
-                email: {type: string}
-                password: {type: string}
+                email: {type: string, format: email}
+                password: {type: string, minLength: 8}
                 name: {type: string}
       responses:
         '201': {description: Created}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+
   /auth/login:
     post:
       summary: Login
+      security: []
+      tags: [Auth]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -33,11 +72,20 @@ paths:
                 email: {type: string}
                 password: {type: string}
       responses:
-        '200': {description: OK}
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TokenPair'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
   /auth/refresh:
     post:
       summary: Refresh access token
+      security: []
+      tags: [Auth]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -46,11 +94,20 @@ paths:
               properties:
                 refresh_token: {type: string}
       responses:
-        '200': {description: OK}
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TokenPair'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
   /auth/logout:
     post:
       summary: Logout and revoke refresh token
+      security: []
+      tags: [Auth]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -60,71 +117,643 @@ paths:
                 refresh_token: {type: string}
       responses:
         '200': {description: OK}
+
   /me:
     get:
       summary: Get current user
-      security:
-        - BearerAuth: []
+      tags: [Auth]
       responses:
-        '200': {description: OK}
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/User'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
   /workspaces:
+    get:
+      summary: List user's workspaces
+      tags: [Workspaces]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/Workspace'}}
     post:
-      summary: Create a workspace
-      security:
-        - BearerAuth: []
+      summary: Create workspace (creator becomes owner)
+      tags: [Workspaces]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
-              required: [name, slug]
+              required: [name]
               properties:
                 name: {type: string}
-                slug: {type: string}
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Workspace'}
+
+  /workspaces/{workspaceID}:
+    parameters:
+      - $ref: '#/components/parameters/workspaceID'
+    get:
+      summary: Get workspace details
+      tags: [Workspaces]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Workspace'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    patch:
+      summary: Update workspace (owner only)
+      tags: [Workspaces]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Workspace'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+    delete:
+      summary: Delete workspace (owner only)
+      tags: [Workspaces]
+      responses:
+        '204': {description: No Content}
+        '403': {$ref: '#/components/responses/Forbidden'}
+
+  /workspaces/{workspaceID}/members:
+    parameters:
+      - $ref: '#/components/parameters/workspaceID'
+    get:
+      summary: List workspace members
+      tags: [Members]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/Member'}}
+    post:
+      summary: Add member (owner only)
+      tags: [Members]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, role]
+              properties:
+                user_id: {type: string, format: uuid}
+                role: {type: string, enum: [owner, member, viewer]}
       responses:
         '201': {description: Created}
-    get:
-      summary: List workspaces
-      security:
-        - BearerAuth: []
+        '403': {$ref: '#/components/responses/Forbidden'}
+
+  /workspaces/{workspaceID}/members/{memberID}:
+    parameters:
+      - $ref: '#/components/parameters/workspaceID'
+      - name: memberID
+        in: path
+        required: true
+        schema: {type: string, format: uuid}
+    patch:
+      summary: Update member role (owner only)
+      tags: [Members]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role: {type: string, enum: [owner, member, viewer]}
       responses:
-        '200': {description: OK}
-  /workspaces/{workspaceSlug}/projects:
+        '204': {description: No Content}
+        '403': {$ref: '#/components/responses/Forbidden'}
+    delete:
+      summary: Remove member (owner only)
+      tags: [Members]
+      responses:
+        '204': {description: No Content}
+        '403': {$ref: '#/components/responses/Forbidden'}
+
+  /workspaces/{workspaceID}/projects:
+    parameters:
+      - $ref: '#/components/parameters/workspaceID'
+    get:
+      summary: List projects
+      tags: [Projects]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/Project'}}
     post:
-      summary: Create a project
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: workspaceSlug
-          in: path
-          required: true
-          schema: {type: string}
+      summary: Create project (member+)
+      tags: [Projects]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: {type: string}
+                key: {type: string, pattern: '^[A-Z]{2,5}$', description: Auto-generated if empty}
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Project'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+
+  /projects/{projectID}:
+    parameters:
+      - $ref: '#/components/parameters/projectID'
+    get:
+      summary: Get project details
+      tags: [Projects]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Project'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    patch:
+      summary: Update project (member+)
+      tags: [Projects]
       requestBody:
         content:
           application/json:
             schema:
               type: object
-              required: [name, key]
               properties:
                 name: {type: string}
                 key: {type: string, pattern: '^[A-Z]{2,5}$'}
       responses:
-        '201': {description: Created}
-        '403': {description: Forbidden}
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Project'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+    delete:
+      summary: Delete project (owner only)
+      tags: [Projects]
+      responses:
+        '204': {description: No Content}
+        '403': {$ref: '#/components/responses/Forbidden'}
+
+  /projects/{projectID}/issues:
+    parameters:
+      - $ref: '#/components/parameters/projectID'
     get:
-      summary: List projects
-      security:
-        - BearerAuth: []
+      summary: List issues with filters
+      tags: [Issues]
       parameters:
-        - name: workspaceSlug
-          in: path
-          required: true
+        - name: status
+          in: query
+          schema: {type: string, enum: [backlog, todo, in_progress, review, done]}
+        - name: assignee
+          in: query
+          schema: {type: string, format: uuid}
+        - name: q
+          in: query
           schema: {type: string}
+          description: Search in title (ILIKE)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/Issue'}}
+    post:
+      summary: Create issue (member+)
+      tags: [Issues]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: {type: string, maxLength: 500}
+                description: {type: string}
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Issue'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+
+  /projects/{projectID}/events:
+    parameters:
+      - $ref: '#/components/parameters/projectID'
+    get:
+      summary: SSE stream of project events
+      tags: [SSE]
+      parameters:
+        - name: token
+          in: query
+          schema: {type: string}
+          description: JWT token (EventSource cannot set headers)
+      responses:
+        '200':
+          description: Event stream
+          content:
+            text/event-stream:
+              schema: {type: string}
+
+  /issues/{issueID}:
+    parameters:
+      - $ref: '#/components/parameters/issueID'
+    get:
+      summary: Get issue details
+      tags: [Issues]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Issue'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    patch:
+      summary: Update issue fields (member+)
+      tags: [Issues]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: {type: string, maxLength: 500}
+                description: {type: string}
+                priority: {type: string, enum: [none, low, medium, high, urgent]}
+                assignee_id: {type: string, format: uuid, nullable: true}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Issue'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+    delete:
+      summary: Delete issue (member+)
+      tags: [Issues]
+      responses:
+        '204': {description: No Content}
+        '403': {$ref: '#/components/responses/Forbidden'}
+
+  /issues/{issueID}/move:
+    parameters:
+      - $ref: '#/components/parameters/issueID'
+    patch:
+      summary: Move issue to status/position (member+)
+      tags: [Issues]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status, position]
+              properties:
+                status: {type: string, enum: [backlog, todo, in_progress, review, done]}
+                position: {type: number}
       responses:
         '200': {description: OK}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+
+  /issues/{issueID}/comments:
+    parameters:
+      - $ref: '#/components/parameters/issueID'
+    get:
+      summary: List comments
+      tags: [Comments]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/Comment'}}
+    post:
+      summary: Add comment (member+)
+      tags: [Comments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: {type: string}
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Comment'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+
+  /issues/{issueID}/activity:
+    parameters:
+      - $ref: '#/components/parameters/issueID'
+    get:
+      summary: List activity events for issue
+      tags: [Activity]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/ActivityEvent'}}
+
+  /issues/{issueID}/labels:
+    parameters:
+      - $ref: '#/components/parameters/issueID'
+    get:
+      summary: List labels attached to issue
+      tags: [Labels]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/Label'}}
+
+  /issues/{issueID}/labels/{labelID}:
+    parameters:
+      - $ref: '#/components/parameters/issueID'
+      - name: labelID
+        in: path
+        required: true
+        schema: {type: string, format: uuid}
+    post:
+      summary: Attach label to issue (member+)
+      tags: [Labels]
+      responses:
+        '200': {description: OK}
+        '403': {$ref: '#/components/responses/Forbidden'}
+    delete:
+      summary: Detach label from issue (member+)
+      tags: [Labels]
+      responses:
+        '200': {description: OK}
+        '403': {$ref: '#/components/responses/Forbidden'}
+
+  /workspaces/{workspaceID}/labels:
+    parameters:
+      - $ref: '#/components/parameters/workspaceID'
+    get:
+      summary: List workspace labels
+      tags: [Labels]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/Label'}}
+    post:
+      summary: Create label (member+)
+      tags: [Labels]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: {type: string}
+                color: {type: string, pattern: '^#[0-9a-fA-F]{6}$', default: '#ffffff'}
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Label'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+
+  /workspaces/{workspaceID}/invites:
+    parameters:
+      - $ref: '#/components/parameters/workspaceID'
+    get:
+      summary: List workspace invites
+      tags: [Invites]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/Invite'}}
+    post:
+      summary: Create invite (member+)
+      tags: [Invites]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, role]
+              properties:
+                email: {type: string, format: email}
+                role: {type: string, enum: [member, viewer]}
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Invite'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+
+  /invites/{token}/accept:
+    parameters:
+      - name: token
+        in: path
+        required: true
+        schema: {type: string}
+    post:
+      summary: Accept invite
+      security: []
+      tags: [Invites]
+      responses:
+        '200': {description: OK}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {description: Invite already accepted}
+
 components:
   securitySchemes:
     BearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
+  parameters:
+    workspaceID:
+      name: workspaceID
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    projectID:
+      name: projectID
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    issueID:
+      name: issueID
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        email: {type: string}
+        name: {type: string}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+
+    TokenPair:
+      type: object
+      properties:
+        access_token: {type: string}
+        refresh_token: {type: string}
+
+    Workspace:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        created_at: {type: string, format: date-time}
+
+    Member:
+      type: object
+      properties:
+        workspace_id: {type: string, format: uuid}
+        user_id: {type: string, format: uuid}
+        role: {type: string, enum: [owner, member, viewer]}
+        user_name: {type: string}
+
+    Project:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        workspace_id: {type: string, format: uuid}
+        name: {type: string}
+        key: {type: string}
+        created_at: {type: string, format: date-time}
+
+    Issue:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        project_id: {type: string, format: uuid}
+        number: {type: integer}
+        title: {type: string}
+        description: {type: string, nullable: true}
+        status: {type: string, enum: [backlog, todo, in_progress, review, done]}
+        priority: {type: string, enum: [none, low, medium, high, urgent]}
+        assignee_id: {type: string, format: uuid, nullable: true}
+        position: {type: number}
+        created_by: {type: string, format: uuid}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+
+    Comment:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        issue_id: {type: string, format: uuid}
+        author_id: {type: string, format: uuid}
+        body: {type: string}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time, nullable: true}
+
+    ActivityEvent:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        issue_id: {type: string, format: uuid}
+        actor_id: {type: string, format: uuid}
+        type: {type: string}
+        payload: {type: object}
+        created_at: {type: string, format: date-time}
+
+    Label:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        workspace_id: {type: string, format: uuid}
+        name: {type: string}
+        color: {type: string}
+
+    Invite:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        workspace_id: {type: string, format: uuid}
+        email: {type: string}
+        role: {type: string, enum: [member, viewer]}
+        token: {type: string}
+        expires_at: {type: string, format: date-time}
+        accepted_at: {type: string, format: date-time, nullable: true}
+        created_by: {type: string, format: uuid}
+        created_at: {type: string, format: date-time}
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: {type: string}
+            message: {type: string}
+
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}

@@ -42,7 +42,7 @@ func (r *IssueRepository) CreateIssueTx(ctx context.Context, issue *domain.Issue
 	defer tx.Rollback(ctx)
 
 	var maxNum *int
-	err = tx.QueryRow(ctx, `SELECT MAX(number) FROM issues WHERE project_id = $1 FOR UPDATE`, issue.ProjectID).Scan(&maxNum)
+	err = tx.QueryRow(ctx, `SELECT MAX(number) FROM issues WHERE project_id = $1`, issue.ProjectID).Scan(&maxNum)
 	if err != nil {
 		return err
 	}

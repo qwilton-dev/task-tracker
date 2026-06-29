@@ -56,15 +56,10 @@ func (m *mockProjectRepo) DeleteProject(ctx context.Context, id string) error {
 }
 
 func TestProjectService_CreateProject(t *testing.T) {
-	wsRepo := &mockWorkspaceRepo{
-		getBySlugFn: func(ctx context.Context, slug string) (*domain.Workspace, error) {
-			return &domain.Workspace{ID: "ws-1", Slug: slug}, nil
-		},
-	}
 	projRepo := &mockProjectRepo{}
-	svc := NewProjectService(projRepo, wsRepo)
+	svc := NewProjectService(projRepo)
 
-	p, err := svc.CreateProject(context.Background(), "my-ws", "Backend", "BE")
+	p, err := svc.CreateProject(context.Background(), "ws-1", "Backend", "BE")
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
@@ -80,12 +75,7 @@ func TestProjectService_CreateProject(t *testing.T) {
 }
 
 func TestProjectService_CreateProject_InvalidKey(t *testing.T) {
-	wsRepo := &mockWorkspaceRepo{
-		getBySlugFn: func(ctx context.Context, slug string) (*domain.Workspace, error) {
-			return &domain.Workspace{ID: "ws-1"}, nil
-		},
-	}
-	svc := NewProjectService(&mockProjectRepo{}, wsRepo)
+	svc := NewProjectService(&mockProjectRepo{})
 
 	_, err := svc.CreateProject(context.Background(), "ws", "P", "x")
 	if err != domain.ErrProjectKeyInvalid {
@@ -104,12 +94,7 @@ func TestProjectService_CreateProject_InvalidKey(t *testing.T) {
 }
 
 func TestProjectService_CreateProject_EmptyName(t *testing.T) {
-	wsRepo := &mockWorkspaceRepo{
-		getBySlugFn: func(ctx context.Context, slug string) (*domain.Workspace, error) {
-			return &domain.Workspace{ID: "ws-1"}, nil
-		},
-	}
-	svc := NewProjectService(&mockProjectRepo{}, wsRepo)
+	svc := NewProjectService(&mockProjectRepo{})
 
 	_, err := svc.CreateProject(context.Background(), "ws", "", "BE")
 	if err != domain.ErrProjectNameRequired {
@@ -118,11 +103,6 @@ func TestProjectService_CreateProject_EmptyName(t *testing.T) {
 }
 
 func TestProjectService_ListProjects(t *testing.T) {
-	wsRepo := &mockWorkspaceRepo{
-		getBySlugFn: func(ctx context.Context, slug string) (*domain.Workspace, error) {
-			return &domain.Workspace{ID: "ws-1"}, nil
-		},
-	}
 	projRepo := &mockProjectRepo{
 		listFn: func(ctx context.Context, workspaceID string) ([]*domain.Project, error) {
 			return []*domain.Project{
@@ -131,9 +111,9 @@ func TestProjectService_ListProjects(t *testing.T) {
 			}, nil
 		},
 	}
-	svc := NewProjectService(projRepo, wsRepo)
+	svc := NewProjectService(projRepo)
 
-	ps, err := svc.ListProjects(context.Background(), "my-ws")
+	ps, err := svc.ListProjects(context.Background(), "ws-1")
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}

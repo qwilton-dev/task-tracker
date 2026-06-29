@@ -1,10 +1,8 @@
 package http
 
 import (
-	"context"
 	"encoding/json"
 	nethttp "net/http"
-	"time"
 
 	"task-tracker/internal/auth"
 	"task-tracker/internal/authz"
@@ -14,8 +12,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/redis/go-redis/v9"
 )
 
 func NewRouter(authHandler *handler.AuthHandler,
@@ -30,9 +26,7 @@ func NewRouter(authHandler *handler.AuthHandler,
 	activityHandler *handler.ActivityHandler,
 	inviteHandler *handler.InviteHandler,
 	workspaceMemberRepo repository.WorkspaceMemberRepository,
-	corsOrigins string,
-	pool *pgxpool.Pool,
-	rdb *redis.Client) nethttp.Handler {
+	corsOrigins string) nethttp.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.CORS(corsOrigins))
@@ -48,18 +42,6 @@ func NewRouter(authHandler *handler.AuthHandler,
 	})
 
 	r.Get("/readyz", func(w nethttp.ResponseWriter, r *nethttp.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
-		defer cancel()
-		if err := pool.Ping(ctx); err != nil {
-			w.WriteHeader(nethttp.StatusServiceUnavailable)
-			_ = json.NewEncoder(w).Encode(map[string]string{"status": "postgres unavailable"})
-			return
-		}
-		if err := rdb.Ping(ctx).Err(); err != nil {
-			w.WriteHeader(nethttp.StatusServiceUnavailable)
-			_ = json.NewEncoder(w).Encode(map[string]string{"status": "redis unavailable"})
-			return
-		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
@@ -87,14 +69,14 @@ func NewRouter(authHandler *handler.AuthHandler,
 				r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleOwner)).Patch("/", workspaceHandler.Update)
 				r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleOwner)).Delete("/", workspaceHandler.Delete)
 
-				r.Route("/projects", func(r chi.Router) {
-					r.With(middleware.RequireRoleByWorkspaceSlug(workspaceMemberRepo, authz.RoleMember)).Post("/", projectHandler.Create)
-					r.Get("/", projectHandler.List)
-				})
-				r.Route("/labels", func(r chi.Router) {
-					r.Get("/", labelHandler.ListLabels)
-					r.With(middleware.RequireRoleByWorkspaceSlug(workspaceMemberRepo, authz.RoleMember)).Post("/", labelHandler.CreateLabel)
-				})
+			r.Route("/projects", func(r chi.Router) {
+				r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleMember)).Post("/", projectHandler.Create)
+				r.Get("/", projectHandler.List)
+			})
+			r.Route("/labels", func(r chi.Router) {
+				r.Get("/", labelHandler.ListLabels)
+				r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleMember)).Post("/", labelHandler.CreateLabel)
+			})
 				r.Route("/members", func(r chi.Router) {
 					r.Get("/", workspaceMemberHandler.ListMembers)
 					r.With(middleware.RequireRoleByWorkspaceID(workspaceMemberRepo, authz.RoleOwner)).Post("/", workspaceMemberHandler.AddMember)
@@ -118,7 +100,7 @@ func NewRouter(authHandler *handler.AuthHandler,
 				r.Get("/", issueHandler.List)
 				r.With(middleware.RequireRoleByProjectID(workspaceMemberRepo, authz.RoleMember)).Post("/", issueHandler.Create)
 			})
-			r.With(middleware.RequireRoleByProjectID(workspaceMemberRepo, authz.RoleViewer)).Get("/events", sseHandler.Stream)
+			r.Get("/events", sseHandler.Stream)
 		})
 
 		r.Route("/issues/{issueID}", func(r chi.Router) {

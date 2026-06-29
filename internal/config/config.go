@@ -12,7 +12,6 @@ import (
 type Config struct {
 	Port                  string
 	DatabaseURL           string
-	RedisURL              string
 	MigrateDir            string
 	RefreshTokenExpiresIn time.Duration
 	SecretKey             string
@@ -25,12 +24,11 @@ func Load() (Config, error) {
 
 	expiresIn, err := strconv.Atoi(expiresInStr)
 	if err != nil {
-		expiresIn = 3600
+		expiresIn = 604800
 	}
 	cfg := Config{
 		Port:                  firstNonEmpty(os.Getenv("APP_PORT"), os.Getenv("PORT"), "8080"),
 		DatabaseURL:           os.Getenv("DATABASE_URL"),
-		RedisURL:              os.Getenv("REDIS_URL"),
 		MigrateDir:            firstNonEmpty(os.Getenv("MIGRATE_DIR"), "db/migrations"),
 		RefreshTokenExpiresIn: time.Duration(expiresIn) * time.Second,
 		SecretKey:             firstNonEmpty(os.Getenv("SECRET_KEY"), "secret"),
@@ -39,10 +37,6 @@ func Load() (Config, error) {
 
 	if cfg.DatabaseURL == "" {
 		cfg.DatabaseURL = databaseURL("localhost")
-	}
-
-	if cfg.RedisURL == "" {
-		cfg.RedisURL = redisURL("localhost")
 	}
 
 	return cfg, nil
@@ -57,11 +51,6 @@ func databaseURL(host string) string {
 		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		user, password, host, port, db,
 	)
-}
-
-func redisURL(host string) string {
-	port := firstNonEmpty(os.Getenv("REDIS_PORT"), "6379")
-	return fmt.Sprintf("%s:%s", host, port)
 }
 
 func firstNonEmpty(values ...string) string {

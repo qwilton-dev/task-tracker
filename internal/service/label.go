@@ -8,30 +8,16 @@ import (
 )
 
 type LabelService struct {
-	repo          repository.LabelRepository
-	workspaceRepo repository.WorkspaceRepository
-	issueRepo     repository.IssueRepository
-	activity      *ActivityEventService
+	repo     repository.LabelRepository
+	activity *ActivityEventService
 }
 
-func NewLabelService(repo repository.LabelRepository, workspaceRepo repository.WorkspaceRepository, issueRepo repository.IssueRepository, activity *ActivityEventService) *LabelService {
-	return &LabelService{repo: repo, workspaceRepo: workspaceRepo, issueRepo: issueRepo, activity: activity}
-}
-
-func (s *LabelService) resolveWorkspaceID(ctx context.Context, slugOrID string) (string, error) {
-	ws, err := s.workspaceRepo.GetWorkspaceBySlug(ctx, slugOrID)
-	if err != nil {
-		return slugOrID, nil
-	}
-	return ws.ID, nil
+func NewLabelService(repo repository.LabelRepository, activity *ActivityEventService) *LabelService {
+	return &LabelService{repo: repo, activity: activity}
 }
 
 func (s *LabelService) CreateLabel(ctx context.Context, workspaceID, name, color string) (*domain.Label, error) {
-	resolved, err := s.resolveWorkspaceID(ctx, workspaceID)
-	if err != nil {
-		return nil, err
-	}
-	label, err := domain.NewLabel(resolved, name, color)
+	label, err := domain.NewLabel(workspaceID, name, color)
 	if err != nil {
 		return nil, err
 	}
@@ -46,11 +32,7 @@ func (s *LabelService) GetLabel(ctx context.Context, id string) (*domain.Label, 
 }
 
 func (s *LabelService) ListLabels(ctx context.Context, workspaceID string) ([]*domain.Label, error) {
-	resolved, err := s.resolveWorkspaceID(ctx, workspaceID)
-	if err != nil {
-		return nil, err
-	}
-	return s.repo.ListLabelsByWorkspace(ctx, resolved)
+	return s.repo.ListLabelsByWorkspace(ctx, workspaceID)
 }
 
 func (s *LabelService) UpdateLabel(ctx context.Context, id, name, color string) (*domain.Label, error) {

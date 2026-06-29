@@ -291,3 +291,26 @@ input:focus, select:focus {
     border-radius: 2px;
     margin: 4px 0;
 }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.toast {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 200;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #fff;
+    animation: fadeIn .2s;
+    max-width: 400px;
+    word-break: break-word;
+}
+
+.toast-success { background: #238636; }
+.toast-error { background: #da3633; }
+.toast-info { background: #1f6feb; }

@@ -6,18 +6,17 @@ import (
 	"task-tracker/internal/domain"
 	"task-tracker/internal/events"
 	"task-tracker/internal/repository"
-	"time"
 )
 
 type CommentService struct {
 	commentRepo repository.CommentRepository
 	issueRepo   repository.IssueRepository
 	activity    *ActivityEventService
-	publisher   *events.Publisher
+	hub         *events.Hub
 }
 
-func NewCommentService(commentRepo repository.CommentRepository, issueRepo repository.IssueRepository, activity *ActivityEventService, publisher *events.Publisher) *CommentService {
-	return &CommentService{commentRepo: commentRepo, issueRepo: issueRepo, activity: activity, publisher: publisher}
+func NewCommentService(commentRepo repository.CommentRepository, issueRepo repository.IssueRepository, activity *ActivityEventService, hub *events.Hub) *CommentService {
+	return &CommentService{commentRepo: commentRepo, issueRepo: issueRepo, activity: activity, hub: hub}
 }
 
 func (s *CommentService) CreateComment(ctx context.Context, issueID, authorID, body string) (*domain.Comment, error) {
@@ -35,11 +34,9 @@ func (s *CommentService) CreateComment(ctx context.Context, issueID, authorID, b
 		"comment_id": comment.ID,
 	})
 	issue, err := s.issueRepo.GetIssueByID(ctx, issueID)
-	if err == nil {
+	if err == nil && s.hub != nil {
 		data, _ := json.Marshal(comment)
-		pubCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
-		defer cancel()
-		s.publisher.Publish(pubCtx, issue.ProjectID, events.Event{
+		s.hub.Publish(issue.ProjectID, events.Event{
 			ProjectID: issue.ProjectID,
 			Type:      "comment.added",
 			Payload:   data,

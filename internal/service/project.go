@@ -7,28 +7,22 @@ import (
 )
 
 type ProjectService struct {
-	projectRepo   repository.ProjectRepository
-	workspaceRepo repository.WorkspaceRepository
+	projectRepo repository.ProjectRepository
 }
 
-func NewProjectService(projectRepo repository.ProjectRepository, workspaceRepo repository.WorkspaceRepository) *ProjectService {
-	return &ProjectService{projectRepo: projectRepo, workspaceRepo: workspaceRepo}
+func NewProjectService(projectRepo repository.ProjectRepository) *ProjectService {
+	return &ProjectService{projectRepo: projectRepo}
 }
 
-func (s *ProjectService) CreateProject(ctx context.Context, workspaceSlug, name, key string) (*domain.Project, error) {
-	ws, err := s.workspaceRepo.GetWorkspaceBySlug(ctx, workspaceSlug)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *ProjectService) CreateProject(ctx context.Context, workspaceID, name, key string) (*domain.Project, error) {
 	if key == "" {
 		key = domain.GenerateUniqueKey(name, func(k string) bool {
-			exists, _ := s.projectRepo.ExistsByKey(ctx, ws.ID, k)
+			exists, _ := s.projectRepo.ExistsByKey(ctx, workspaceID, k)
 			return exists
 		})
 	}
 
-	p, err := domain.NewProject(ws.ID, name, key)
+	p, err := domain.NewProject(workspaceID, name, key)
 	if err != nil {
 		return nil, err
 	}

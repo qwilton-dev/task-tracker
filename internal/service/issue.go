@@ -7,18 +7,17 @@ import (
 	"task-tracker/internal/domain"
 	"task-tracker/internal/events"
 	"task-tracker/internal/repository"
-	"time"
 )
 
 type IssueService struct {
 	issueRepo   repository.IssueRepository
 	projectRepo repository.ProjectRepository
 	activity    *ActivityEventService
-	publisher   *events.Publisher
+	hub         *events.Hub
 }
 
-func NewIssueService(activityEventSvc *ActivityEventService, issueRepo repository.IssueRepository, projectRepo repository.ProjectRepository, publisher *events.Publisher) *IssueService {
-	return &IssueService{activity: activityEventSvc, issueRepo: issueRepo, projectRepo: projectRepo, publisher: publisher}
+func NewIssueService(activityEventSvc *ActivityEventService, issueRepo repository.IssueRepository, projectRepo repository.ProjectRepository, hub *events.Hub) *IssueService {
+	return &IssueService{activity: activityEventSvc, issueRepo: issueRepo, projectRepo: projectRepo, hub: hub}
 }
 
 func (s *IssueService) CreateIssue(ctx context.Context, projectID, title, description, createdBy string) (*domain.Issue, error) {
@@ -114,13 +113,11 @@ func (s *IssueService) MoveIssue(ctx context.Context, id, status string, positio
 }
 
 func (s *IssueService) publish(ctx context.Context, projectID, eventType string, payload any) {
-	if s.publisher == nil {
+	if s.hub == nil {
 		return
 	}
 	data, _ := json.Marshal(payload)
-	pubCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
-	defer cancel()
-	s.publisher.Publish(pubCtx, projectID, events.Event{
+	s.hub.Publish(projectID, events.Event{
 		ProjectID: projectID,
 		Type:      eventType,
 		Payload:   data,

@@ -26,13 +26,12 @@ func (h *WorkspaceHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var req struct {
 		Name string `json:"name"`
-		Slug string `json:"slug"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "bad_request", "invalid json")
 		return
 	}
-	ws, err := h.svc.CreateWorkspace(r.Context(), userID, req.Name, req.Slug)
+	ws, err := h.svc.CreateWorkspace(r.Context(), userID, req.Name)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
 		return
@@ -64,13 +63,12 @@ func (h *WorkspaceHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "workspaceID")
 	var req struct {
 		Name string `json:"name"`
-		Slug string `json:"slug"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "bad_request", "invalid json")
 		return
 	}
-	ws, err := h.svc.UpdateWorkspace(r.Context(), id, req.Name, req.Slug)
+	ws, err := h.svc.UpdateWorkspace(r.Context(), id, req.Name)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
 		return

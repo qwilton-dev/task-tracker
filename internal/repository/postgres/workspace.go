@@ -20,64 +20,50 @@ func NewWorkspaceRepository(db *pgxpool.Pool) *WorkspaceRepository {
 
 func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspace *domain.Workspace) error {
 	query := `
-		INSERT INTO workspace (name, slug)
-		VALUES ($1, $2)
+		INSERT INTO workspace (name)
+		VALUES ($1)
 		RETURNING id, created_at
 	`
-	err := r.db.QueryRow(ctx, query, workspace.Name, workspace.Slug).
+	return r.db.QueryRow(ctx, query, workspace.Name).
 		Scan(&workspace.ID, &workspace.CreatedAt)
-	return err
 }
 
 func (r *WorkspaceRepository) GetWorkspaceByID(ctx context.Context, id string) (*domain.Workspace, error) {
-	query := `
-		SELECT id, name, slug, created_at
-		FROM workspace
-		WHERE id = $1
-	`
-	var workspace domain.Workspace
-	err := r.db.QueryRow(ctx, query, id).
-		Scan(&workspace.ID, &workspace.Name, &workspace.Slug, &workspace.CreatedAt)
+	query := `SELECT id, name, created_at FROM workspace WHERE id = $1`
+	var ws domain.Workspace
+	err := r.db.QueryRow(ctx, query, id).Scan(&ws.ID, &ws.Name, &ws.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
-	return &workspace, nil
+	return &ws, nil
 }
-func (r *WorkspaceRepository) GetWorkspaceBySlug(ctx context.Context, slug string) (*domain.Workspace, error) {
-	query := `
-		SELECT id, name, slug, created_at
-		FROM workspace
-		WHERE slug = $1
-	`
-	var workspace domain.Workspace
-	err := r.db.QueryRow(ctx, query, slug).
-		Scan(&workspace.ID, &workspace.Name, &workspace.Slug, &workspace.CreatedAt)
-	if err != nil {
-		return nil, err
-	}
-	return &workspace, nil
-}
+
 func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, workspace *domain.Workspace) error {
-	query := `
-		UPDATE workspace
-		SET name = $1, slug = $2
-		WHERE id = $3
-	`
-	_, err := r.db.Exec(ctx, query, workspace.Name, workspace.Slug, workspace.ID)
-	return err
+	query := `UPDATE workspace SET name = $1 WHERE id = $2`
+	tag, err := r.db.Exec(ctx, query, workspace.Name, workspace.ID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return domain.ErrWorkspaceNotFound
+	}
+	return nil
 }
+
 func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, id string) error {
-	query := `
-		DELETE FROM workspace
-		WHERE id = $1
-	`
-	_, err := r.db.Exec(ctx, query, id)
-	return err
+	tag, err := r.db.Exec(ctx, `DELETE FROM workspace WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return domain.ErrWorkspaceNotFound
+	}
+	return nil
 }
 
 func (r *WorkspaceRepository) ListWorkspaces(ctx context.Context, userID string) ([]*domain.Workspace, error) {
 	query := `
-		SELECT w.id, w.name, w.slug, w.created_at
+		SELECT w.id, w.name, w.created_at
 		FROM workspace w
 		JOIN workspace_member wm ON w.id = wm.workspace_id
 		WHERE wm.user_id = $1
@@ -91,7 +77,7 @@ func (r *WorkspaceRepository) ListWorkspaces(ctx context.Context, userID string)
 	var workspaces []*domain.Workspace
 	for rows.Next() {
 		var w domain.Workspace
-		if err := rows.Scan(&w.ID, &w.Name, &w.Slug, &w.CreatedAt); err != nil {
+		if err := rows.Scan(&w.ID, &w.Name, &w.CreatedAt); err != nil {
 			return nil, err
 		}
 		workspaces = append(workspaces, &w)

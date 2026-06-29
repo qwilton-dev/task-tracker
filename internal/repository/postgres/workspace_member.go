@@ -81,18 +81,6 @@ func (r *WorkspaceMemberRepository) GetRole(ctx context.Context, workspaceID, us
 	return role, err
 }
 
-func (r *WorkspaceMemberRepository) GetRoleBySlug(ctx context.Context, slug, userID string) (string, error) {
-	query := `
-		SELECT wm.role
-		FROM workspace_member wm
-		JOIN workspace w ON wm.workspace_id = w.id
-		WHERE w.slug = $1 AND wm.user_id = $2
-	`
-	var role string
-	err := r.db.QueryRow(ctx, query, slug, userID).Scan(&role)
-	return role, err
-}
-
 func (r *WorkspaceMemberRepository) GetRoleByProjectID(ctx context.Context, projectID, userID string) (string, error) {
 	query := `
 		SELECT wm.role

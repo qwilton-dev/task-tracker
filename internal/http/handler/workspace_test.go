@@ -17,7 +17,8 @@ import (
 type wsHandlerRepo struct {
 	createFn    func(ctx context.Context, ws *domain.Workspace) error
 	getByIDFn   func(ctx context.Context, id string) (*domain.Workspace, error)
-	getBySlugFn func(ctx context.Context, slug string) (*domain.Workspace, error)
+	updateFn    func(ctx context.Context, ws *domain.Workspace) error
+	deleteFn    func(ctx context.Context, id string) error
 	listFn      func(ctx context.Context, userID string) ([]*domain.Workspace, error)
 	addMemberFn func(ctx context.Context, workspaceID, userID, role string) error
 }
@@ -36,16 +37,18 @@ func (r *wsHandlerRepo) GetWorkspaceByID(ctx context.Context, id string) (*domai
 	}
 	return nil, nil
 }
-func (r *wsHandlerRepo) GetWorkspaceBySlug(ctx context.Context, slug string) (*domain.Workspace, error) {
-	if r.getBySlugFn != nil {
-		return r.getBySlugFn(ctx, slug)
-	}
-	return nil, nil
-}
 func (r *wsHandlerRepo) UpdateWorkspace(ctx context.Context, ws *domain.Workspace) error {
+	if r.updateFn != nil {
+		return r.updateFn(ctx, ws)
+	}
 	return nil
 }
-func (r *wsHandlerRepo) DeleteWorkspace(ctx context.Context, id string) error { return nil }
+func (r *wsHandlerRepo) DeleteWorkspace(ctx context.Context, id string) error {
+	if r.deleteFn != nil {
+		return r.deleteFn(ctx, id)
+	}
+	return nil
+}
 func (r *wsHandlerRepo) ListWorkspaces(ctx context.Context, userID string) ([]*domain.Workspace, error) {
 	if r.listFn != nil {
 		return r.listFn(ctx, userID)
@@ -64,7 +67,7 @@ func TestWorkspaceHandler_Create_201(t *testing.T) {
 	svc := service.NewWorkspaceService(repo)
 	h := NewWorkspaceHandler(svc)
 
-	body := bytes.NewBufferString(`{"name":"My WS","slug":"my-ws"}`)
+	body := bytes.NewBufferString(`{"name":"My WS"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = req.WithContext(middleware.WithUserID(req.Context(), "user-1"))
@@ -89,7 +92,7 @@ func TestWorkspaceHandler_Create_401_NoUserID(t *testing.T) {
 	svc := service.NewWorkspaceService(repo)
 	h := NewWorkspaceHandler(svc)
 
-	body := bytes.NewBufferString(`{"name":"My WS","slug":"my-ws"}`)
+	body := bytes.NewBufferString(`{"name":"My WS"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/workspaces", body)
 	rr := httptest.NewRecorder()
 
@@ -121,8 +124,8 @@ func TestWorkspaceHandler_List_200(t *testing.T) {
 	repo := &wsHandlerRepo{
 		listFn: func(ctx context.Context, userID string) ([]*domain.Workspace, error) {
 			return []*domain.Workspace{
-				{ID: "ws-1", Name: "WS1", Slug: "ws1"},
-				{ID: "ws-2", Name: "WS2", Slug: "ws2"},
+				{ID: "ws-1", Name: "WS1"},
+				{ID: "ws-2", Name: "WS2"},
 			}, nil
 		},
 	}

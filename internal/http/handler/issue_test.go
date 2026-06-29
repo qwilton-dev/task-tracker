@@ -28,6 +28,15 @@ type issueHandlerRepo struct {
 
 var _ repository.IssueRepository = (*issueHandlerRepo)(nil)
 
+type handlerMockActivityEventRepo struct{}
+
+func (m *handlerMockActivityEventRepo) Create(ctx context.Context, event *domain.ActivityEvent) error {
+	return nil
+}
+func (m *handlerMockActivityEventRepo) ListByIssue(ctx context.Context, issueID string) ([]*domain.ActivityEvent, error) {
+	return nil, nil
+}
+
 func (r *issueHandlerRepo) CreateIssue(ctx context.Context, issue *domain.Issue) error {
 	if r.createFn != nil {
 		return r.createFn(ctx, issue)
@@ -90,7 +99,7 @@ func TestIssueHandler_Create_201(t *testing.T) {
 		maxNumFn: func(ctx context.Context, projectID string) (int, error) { return 0, nil },
 	}
 	projRepo := &projHandlerProjectRepo{}
-	svc := service.NewIssueService(issueRepo, projRepo)
+	svc := service.NewIssueService(service.NewActivityEventService(&handlerMockActivityEventRepo{}), issueRepo, projRepo, nil)
 	h := NewIssueHandler(svc)
 
 	body := bytes.NewBufferString(`{"title":"Fix bug","description":"desc"}`)
@@ -117,7 +126,7 @@ func TestIssueHandler_Create_201(t *testing.T) {
 func TestIssueHandler_Create_400_EmptyTitle(t *testing.T) {
 	issueRepo := &issueHandlerRepo{}
 	projRepo := &projHandlerProjectRepo{}
-	svc := service.NewIssueService(issueRepo, projRepo)
+	svc := service.NewIssueService(service.NewActivityEventService(&handlerMockActivityEventRepo{}), issueRepo, projRepo, nil)
 	h := NewIssueHandler(svc)
 
 	body := bytes.NewBufferString(`{"title":""}`)
@@ -144,7 +153,7 @@ func TestIssueHandler_List_200(t *testing.T) {
 		},
 	}
 	projRepo := &projHandlerProjectRepo{}
-	svc := service.NewIssueService(issueRepo, projRepo)
+	svc := service.NewIssueService(service.NewActivityEventService(&handlerMockActivityEventRepo{}), issueRepo, projRepo, nil)
 	h := NewIssueHandler(svc)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/projects/proj-1/issues", nil)
@@ -166,9 +175,13 @@ func TestIssueHandler_List_200(t *testing.T) {
 }
 
 func TestIssueHandler_Move_200(t *testing.T) {
-	issueRepo := &issueHandlerRepo{}
+	issueRepo := &issueHandlerRepo{
+		getByIDFn: func(ctx context.Context, id string) (*domain.Issue, error) {
+			return &domain.Issue{ID: id, Title: "Bug", CreatedBy: "user-1"}, nil
+		},
+	}
 	projRepo := &projHandlerProjectRepo{}
-	svc := service.NewIssueService(issueRepo, projRepo)
+	svc := service.NewIssueService(service.NewActivityEventService(&handlerMockActivityEventRepo{}), issueRepo, projRepo, nil)
 	h := NewIssueHandler(svc)
 
 	body := bytes.NewBufferString(`{"status":"todo","position":100}`)
@@ -187,10 +200,13 @@ func TestIssueHandler_Move_200(t *testing.T) {
 
 func TestIssueHandler_Delete_204(t *testing.T) {
 	issueRepo := &issueHandlerRepo{
+		getByIDFn: func(ctx context.Context, id string) (*domain.Issue, error) {
+			return &domain.Issue{ID: id, Title: "Bug", CreatedBy: "user-1"}, nil
+		},
 		deleteFn: func(ctx context.Context, id string) error { return nil },
 	}
 	projRepo := &projHandlerProjectRepo{}
-	svc := service.NewIssueService(issueRepo, projRepo)
+	svc := service.NewIssueService(service.NewActivityEventService(&handlerMockActivityEventRepo{}), issueRepo, projRepo, nil)
 	h := NewIssueHandler(svc)
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/issues/issue-1", nil)

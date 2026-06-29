@@ -71,29 +71,8 @@ func (m *mockLabelRepo) ListLabelsByIssue(ctx context.Context, issueID string) (
 	return nil, nil
 }
 
-type mockIssueRepoForLabel struct{}
-
-func (m *mockIssueRepoForLabel) CreateIssue(ctx context.Context, issue *domain.Issue) error { return nil }
-func (m *mockIssueRepoForLabel) CreateIssueTx(ctx context.Context, issue *domain.Issue) error { return nil }
-func (m *mockIssueRepoForLabel) GetIssueByID(ctx context.Context, id string) (*domain.Issue, error) {
-	return nil, domain.ErrIssueNotFound
-}
-func (m *mockIssueRepoForLabel) ListIssuesByProject(ctx context.Context, projectID string, filters repository.IssueFilters) ([]*domain.Issue, error) {
-	return nil, nil
-}
-func (m *mockIssueRepoForLabel) UpdateIssue(ctx context.Context, issue *domain.Issue) error { return nil }
-func (m *mockIssueRepoForLabel) DeleteIssue(ctx context.Context, id string) error          { return nil }
-func (m *mockIssueRepoForLabel) MoveIssue(ctx context.Context, id, status string, position float64) error {
-	return nil
-}
-func (m *mockIssueRepoForLabel) GetMaxNumber(ctx context.Context, projectID string) (int, error) {
-	return 0, nil
-}
-
-var _ repository.IssueRepository = (*mockIssueRepoForLabel)(nil)
-
 func newTestLabelService(repo repository.LabelRepository) *LabelService {
-	return NewLabelService(repo, &mockWorkspaceRepo{}, &mockIssueRepoForLabel{}, NewActivityEventService(&mockActivityEventRepo{}))
+	return NewLabelService(repo, NewActivityEventService(&mockActivityEventRepo{}))
 }
 
 func TestLabelService_CreateLabel(t *testing.T) {

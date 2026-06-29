@@ -18,7 +18,6 @@ import (
 	"task-tracker/internal/service"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/redis/go-redis/v9"
 )
 
 func main() {
@@ -34,11 +33,7 @@ func main() {
 	}
 	defer pool.Close()
 
-	rdb := redis.NewClient(&redis.Options{
-		Addr: cfg.RedisURL,
-		DB:   0,
-	})
-	defer rdb.Close()
+	hub := events.NewHub()
 
 	userRepo := postgres.NewUserRepository(pool)
 	tokenRepo := postgres.NewTokenRepository(pool)
@@ -51,18 +46,15 @@ func main() {
 	activityEventRepo := postgres.NewActivityEventRepository(pool)
 	inviteRepo := postgres.NewInviteRepository(pool)
 
-	publisher := events.NewPublisher(rdb)
-	hub := events.NewHub()
-
 	jwtService := auth.NewJWTService(cfg.SecretKey, "task-tracker", "api", 15*time.Minute)
 	authService := service.NewAuthService(userRepo, tokenRepo, jwtService, cfg.RefreshTokenExpiresIn)
 	workspaceService := service.NewWorkspaceService(workspaceRepo)
 	workspaceMemberService := service.NewWorkspaceMemberService(workspaceMemberRepo)
-	projectService := service.NewProjectService(projectRepo, workspaceRepo)
+	projectService := service.NewProjectService(projectRepo)
 	activityEventService := service.NewActivityEventService(activityEventRepo)
-	issueService := service.NewIssueService(activityEventService, issueRepo, projectRepo, publisher)
-	commentService := service.NewCommentService(commentRepo, issueRepo, activityEventService, publisher)
-	labelService := service.NewLabelService(labelRepo, workspaceRepo, issueRepo, activityEventService)
+	issueService := service.NewIssueService(activityEventService, issueRepo, projectRepo, hub)
+	commentService := service.NewCommentService(commentRepo, issueRepo, activityEventService, hub)
+	labelService := service.NewLabelService(labelRepo, activityEventService)
 	inviteService := service.NewInviteService(inviteRepo, workspaceMemberRepo)
 
 	authHandler := handler.NewAuthHandler(authService)
@@ -76,9 +68,7 @@ func main() {
 	inviteHandler := handler.NewInviteHandler(inviteService)
 	sseHandler := handler.NewSSEHandler(hub)
 
-	r := internalhttp.NewRouter(authHandler, workspaceHandler, jwtService, workspaceMemberHandler, projectHandler, issueHandler, commentHandler, labelHandler, sseHandler, activityHandler, inviteHandler, workspaceMemberRepo, cfg.CORSOrigins, pool, rdb)
-
-	go publisher.StartListening(ctx, hub)
+	r := internalhttp.NewRouter(authHandler, workspaceHandler, jwtService, workspaceMemberHandler, projectHandler, issueHandler, commentHandler, labelHandler, sseHandler, activityHandler, inviteHandler, workspaceMemberRepo, cfg.CORSOrigins)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,
